@@ -1,0 +1,14 @@
+{
+  "name": "delivery-doctrine",
+  "owner": "Vishal Swami",
+  "description": "Marketplace for the delivery-doctrine plugin.",
+  "plugins": [
+    {
+      "name": "delivery-doctrine",
+      "source": ".",
+      "description": "Gear-based agentic delivery method: grill, slice, implementer/critic loop, gates, language profiles (Java/Python/Go).",
+      "category": "workflow",
+      "tags": ["tdd", "ddd", "methodology"]
+    }
+  ]
+}
