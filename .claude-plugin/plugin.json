@@ -9,6 +9,5 @@
   },
   "license": "MIT",
   "keywords": ["tdd", "ddd", "vertical-slicing", "delivery", "methodology", "code-review"],
-  "hooks": "./hooks/hooks.json",
-  "dependencies": ["superpowers"]
+  "dependencies": ["superpowers@claude-plugins-official"]
 }
