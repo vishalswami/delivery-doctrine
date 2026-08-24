@@ -9,8 +9,6 @@
   },
   "license": "MIT",
   "keywords": ["tdd", "ddd", "vertical-slicing", "delivery", "methodology", "code-review"],
-  "skills": "./skills/",
-  "agents": "./agents/",
   "hooks": "./hooks/hooks.json",
   "dependencies": ["superpowers"]
 }
