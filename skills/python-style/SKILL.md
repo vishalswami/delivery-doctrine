@@ -26,7 +26,8 @@ Pairs with `delivery-doctrine:pytest-testing`.
 - **On a hang:** `py-spy dump --pid <pid>` names the stuck stack in seconds (see
   `delivery-doctrine:execution-hygiene`).
 - **No magic values** — name constants.
-- **Formatting delegated** to ruff/black; don't hand-format. Lint with ruff.
+- **Formatting delegated** to ruff/black; don't hand-format. Lint with ruff on the
+  files you touched (`ruff check <paths>`), per `delivery-doctrine:execution-hygiene`.
 - **Errors:** raise typed, meaningful exceptions; never swallow; no secrets or PII in
   messages or logs.
 

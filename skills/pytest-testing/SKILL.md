@@ -33,6 +33,10 @@ def test_given_expired_token_when_authenticating_then_rejected():
   many cases, still readable.
 - Acceptance tests drive the entry point and stub boundaries with `responses` or an
   `httpx` mock transport, per `delivery-doctrine:acceptance-testing`.
+- Run only the test you're on, by node id
+  (`pytest tests/test_auth.py::test_given_expired_token_when_authenticating_then_rejected`)
+  or `-k given_expired_token`; never a bare `pytest` as the red/green loop — scope per
+  `delivery-doctrine:execution-hygiene`.
 
 ## TDD pairing
 Inside `superpowers:test-driven-development`: RED first, GREEN minimal, refactor. Full

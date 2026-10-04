@@ -30,8 +30,9 @@ CLAUDE.md's execution rule).
    `given_receipts_and_sales_when_replayed_in_timestamp_order_then_balance_applies_in_order`.
 3. **One critic pass, then own eyes.** Dispatch the critic once (spec, quality,
    adversarial spec-gap); fix findings; then your own eye-pass. No iterate-to-cap loop.
-4. **Run and commit.** App runs, acceptance green, commit the green thread with a clear
-   message. In team mode, commit on a branch and PR per `delivery-doctrine:superpowers-seam`'s commit
+4. **Run and commit.** Acceptance green (the test you wrote, by name), the app started
+   if wiring changed (a walking skeleton usually is wiring), commit the green thread with
+   a clear message. In team mode, commit on a branch and PR per `delivery-doctrine:superpowers-seam`'s commit
    protocol — house lint/CI gates apply regardless of gear. Follow `delivery-doctrine:execution-hygiene`
    when running tests or any long command.
 

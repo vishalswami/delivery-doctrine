@@ -51,17 +51,22 @@ horizontal layers.
 
 ## Per-slice loop + Definition of Done
 Red test, implementer to green, manual review, critic pass on architecturally
-meaningful slices only, app runs, integration test green, explicit sign-off. A
-slice is not done until I say so. Reserve the full critic loop for the one or two
-slices with real architectural weight; own-eyes or a light pass on the rest.
+meaningful slices only, app starts if wiring changed, integration test green, explicit
+sign-off. A slice is not done until I say so. Reserve the full critic loop for the one
+or two slices with real architectural weight; own-eyes or a light pass on the rest.
 - Critic loop is iteration-based, convergence-gated, and tiered by slice weight (hard
   cap 3 passes, 3 lenses); mechanics live in `critic.md` and `delivery-doctrine:superpowers-seam`.
+- Every local check is scoped to what the slice touched: its tests by name or pattern,
+  lint on its files, the race detector once at the end on concurrent tests, the app
+  started only when wiring changed. Whole packages and full suites are CI's, on every
+  push. Depth: `delivery-doctrine:execution-hygiene`.
 - Acceptance tests (behaviors named at the grill, written test-first per slice)
   accumulate into a suite; full gear closes by running the whole suite green against the
-  running app — the deploy finale. They run end to end against in-process stubs of
-  external boundaries. Depth: `delivery-doctrine:acceptance-testing`.
-- Full gear, when a slice is done: formatter and static analysis (lint) clean before the
-  commit. (Enforcing git hook: the DoD hook, later.)
+  running app — the deploy finale, run once at the close, not per iteration. They run
+  end to end against in-process stubs of external boundaries. Depth:
+  `delivery-doctrine:acceptance-testing`.
+- Full gear, when a slice is done: formatter and static analysis (lint) clean on the
+  files the slice touched, before the commit. (Enforcing git hook: the DoD hook, later.)
 - Low gear collapses the loop: walking skeleton green, one critic pass, own eyes, run,
   commit; no acceptance suite, no lint (see Gears / `delivery-doctrine:fast-path`).
 - Depth: `superpowers:test-driven-development`, `superpowers:verification-before-completion`.
@@ -118,7 +123,7 @@ do not overlap.
 - `delivery-doctrine:ddd-hexagonal-reviewer` — ports/adapters + over-engineering check.
 - `delivery-doctrine:fast-path` — low-gear delivery for spikes, small tasks, and bugfixes.
 - `delivery-doctrine:narration-cue-map` — live narration windows; no dead air, protect the finish.
-- `delivery-doctrine:execution-hygiene` — running tests and long commands without self-inflicted thrash.
+- `delivery-doctrine:execution-hygiene` — running tests and long commands scoped to the change, without self-inflicted thrash.
 - `delivery-doctrine:acceptance-testing` — end-to-end slice test; in-process stubs for external boundaries.
 - `delivery-doctrine:given-when-then-tests` — language-agnostic test structure + given_when_then naming.
 - `delivery-doctrine:superpowers-seam` — how this doctrine and superpowers compose.

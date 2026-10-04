@@ -2,7 +2,7 @@
 name: go-testing
 description: Use when writing or reviewing Go tests — the Go specialization of
   given-when-then-tests. Table-driven tests with given/when/then case names, t.Parallel,
-  mockery mocks at ports only, testify assertions, -race in the loop.
+  mockery mocks at ports only, testify assertions, -race once at the end on concurrent code.
 ---
 
 # Go Testing
@@ -40,8 +40,11 @@ Test helpers take `*testing.T` and call `t.Helper()`; register teardown with `t.
 (also `t.TempDir`, `t.Setenv`). Go 1.24+: `t.Context()` over `context.Background()`.
 
 ## The loop
-- `go test ./... -race` in the standard loop; the race detector is not optional for
-  concurrent code.
+- Run only the test you're on, by name: `go test -run '^TestAuthenticate$/given_expired_token' ./path/to/pkg`
+  (subtest names match with spaces as underscores). Never `./...` or a whole package as
+  the red/green loop — scope per `delivery-doctrine:execution-hygiene`.
+- The race detector is not optional for concurrent code, and runs once, at the end, on
+  the packages that have it: `go test -race ./path/to/pkg` — not on every iteration.
 - Acceptance tests: exercise the fully wired router via `httptest.NewServer` (or
   `NewRecorder` per request); stub external HTTP dependencies with their own
   `httptest.NewServer`, per `delivery-doctrine:acceptance-testing`. For CLIs, test an exported

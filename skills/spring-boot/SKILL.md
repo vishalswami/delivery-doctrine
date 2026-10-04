@@ -20,7 +20,9 @@ Enterprise Spring Boot 3.x development with focus on clean architecture and prod
 2. **Design** - Plan architecture, confirm design before coding
 3. **Implement** - Build with constructor injection and layered architecture
 4. **Secure** - Add Spring Security, OAuth2, method security; verify tests pass
-5. **Test** - Write unit, integration tests; run `./mvnw test` and confirm all pass
+5. **Test** - Write unit, integration tests; run only the tests you wrote
+   (`./mvnw test -Dtest='ProductControllerTest#givenValidRequest*'`; Gradle `--tests`),
+   per `delivery-doctrine:execution-hygiene` — the full suite is CI's
 6. **Deploy** - Configure health checks via Actuator; validate `/actuator/health` returns UP
 
 ## Quick Start Templates

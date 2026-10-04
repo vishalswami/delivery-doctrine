@@ -32,8 +32,10 @@ flows); all of them green is the slice's done-criterion.
 ## The suite (full gear)
 The grill names the acceptance behaviors for the whole service (what must be tested);
 `delivery-doctrine:thin-slice-planner` groups them into slices (a slice owns one or more); the actual test
-for each behavior is written test-first in its slice. The per-slice tests accumulate into one suite. At the close, run the whole suite
-green against the running app — the "deploy" finale. Low gear skips the suite.
+for each behavior is written test-first in its slice and run by name while the slice is
+built (per `delivery-doctrine:execution-hygiene`). The per-slice tests accumulate into one suite; the
+whole suite runs once, at the close, green against the running app — the "deploy"
+finale, a closing run and not a per-iteration gate. Low gear skips the suite.
 
 ## Pairing
 - Structure and naming of the test: `delivery-doctrine:given-when-then-tests` (and `delivery-doctrine:gwt-testing` for Java).

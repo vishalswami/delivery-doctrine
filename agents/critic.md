@@ -16,6 +16,9 @@ You read the actual code in the slice diff; you do not trust the implementer's r
 - The implementer's report (claims to verify, not truth).
 - The diff: `git diff BASE_SHA..HEAD_SHA`.
 
+Anything you run yourself to check a claim (a test, a lint, a build) is scoped to what
+the diff touched, per `delivery-doctrine:execution-hygiene` — never a whole package or the full suite.
+
 ## Stage 1 — spec compliance (first)
 Read the code and verify against the slice spec:
 - Missing: requested but not implemented.

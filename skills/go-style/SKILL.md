@@ -12,7 +12,9 @@ The Go quality profile. Loaded at implementation time for Go work. Pairs with `d
 
 ## Rules
 - **Formatting delegated** to gofmt/goimports (or `golangci-lint fmt` on v2 configs);
-  lint with golangci-lint. Don't hand-format.
+  lint with golangci-lint on the packages you touched (`golangci-lint run ./path/to/pkg/...`),
+  and `go vet` the same packages after a rename or signature change — scope per
+  `delivery-doctrine:execution-hygiene`. Don't hand-format.
 - **Errors are values.** Wrap with context: `fmt.Errorf("registering order: %w", err)` —
   `%w` only when callers should `errors.Is/As` through it (wrapping is API), else `%v`.
   Error strings: lower-case, no trailing punctuation, no "failed to" prefixes — the wrap
