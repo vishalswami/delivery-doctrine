@@ -22,6 +22,12 @@ honor existing codebases), and language profiles for Java, Python, and Go.
 - **Guard hook** — PreToolUse block on destructive commands (`rm -rf`, `sudo`,
   `pkill`/`killall`, force-push in all its spellings — `--force-with-lease` stays
   allowed for stacked-PR restacks, `git reset --hard`, `chmod 777`).
+- **Timing hook** — SubagentStop, async, zero tokens: when a subagent finishes,
+  appends one JSON line on how it spent the clock (seconds per tool category and per
+  doctrine phase — red, green, verification, lint, waiting) to
+  `~/.claude/doctrine-metrics/runs.jsonl`. Evidence for tuning the doctrine; read it
+  with `python3 hooks/subagent_timing.py summarise`. Set `DOCTRINE_METRICS_DIR` to log
+  elsewhere.
 
 ## Requirements
 
@@ -29,7 +35,7 @@ honor existing codebases), and language profiles for Java, Python, and Go.
   `claude-plugins-official` marketplace is configured, otherwise install it first):
   the doctrine composes with its TDD red-green-refactor core, subagent prompts, and
   code-review template — it does not replace them.
-- `python3` on PATH (used by the guard hook).
+- `python3` on PATH (used by the guard and timing hooks).
 
 ## Install
 
@@ -41,7 +47,7 @@ claude plugin install delivery-doctrine@delivery-doctrine
 Verify after install (in a fresh session):
 - `/plugin` — delivery-doctrine listed and enabled (superpowers too).
 - `/context` — the doctrine text present; skills/agents listed under delivery-doctrine.
-- `/hooks` — the SessionStart and PreToolUse hooks registered.
+- `/hooks` — the SessionStart, PreToolUse and SubagentStop hooks registered.
 - Ask "what gear are we in?" — the session should answer from the doctrine.
 - On a scratch branch, try `git push --force` — the guard must refuse and point to
   `--force-with-lease`.
