@@ -17,8 +17,9 @@ honor existing codebases), and language profiles for Java, Python, and Go.
   profiles — Java (`spring-boot`, `gwt-testing`, `readable-java-style`, `code-quality`,
   `concurrency-review`, `security-audit`), Python (`python-style`, `pytest-testing`),
   Go (`go-style`, `go-testing`).
-- **3 agents** — `implementer` (sonnet), `critic` (opus, 3-lens review), `plan-critic`
-  (opus, coverage/drift check before code).
+- **3 agents** — `implementer` (opus by default; mechanical work is dispatched on
+  sonnet), `critic` (opus, 3-lens review), `plan-critic` (opus, coverage/drift check
+  before code).
 - **Guard hook** — PreToolUse block on destructive commands (`rm -rf`, `sudo`,
   `pkill`/`killall`, force-push in all its spellings — `--force-with-lease` stays
   allowed for stacked-PR restacks, `git reset --hard`, `chmod 777`).

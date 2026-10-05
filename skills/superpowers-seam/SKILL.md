@@ -13,13 +13,14 @@ compose. Where they overlap, this file says who wins.
 ## Ownership
 - superpowers `test-driven-development` — red-green-refactor inner loop.
 - superpowers `subagent-driven-development` — implementer + spec/code-quality
-  reviewer prompts, status handling, model tiers.
+  reviewer prompts, status handling.
 - superpowers `requesting-code-review` — critic dispatch (diff + template).
 - superpowers `writing-plans` — bite-sized TDD step format only.
 - doctrine `delivery-doctrine:grill-fast` — requirements grill.
 - doctrine `delivery-doctrine:thin-slice-planner` — vertical slice decomposition + ordering,
   walking-skeleton-first.
-- doctrine — per-slice loop, Definition of Done, alignment gates, narration.
+- doctrine — per-slice loop, Definition of Done, alignment gates, narration, model
+  binding.
 - doctrine `delivery-doctrine:ddd-hexagonal-reviewer` — architecture + over-engineering check.
 
 ## Reconciliations
@@ -38,6 +39,9 @@ compose. Where they overlap, this file says who wins.
 5. **Adversarial spec-gap is a doctrine-added lens, not a fork.** The critic runs a
    third lens (attack inputs the spec never named) layered on top of superpowers'
    `requesting-code-review`, not replacing it.
+6. **The doctrine binds the model, by task type.** SDD's per-role tiers
+   (cheap/standard/capable) do not carry over; the orchestrator sets `model` on every
+   dispatch per the doctrine's Implementer / critic roles.
 
 ## Commit protocol (how the critic gets its diff)
 Two modes — pick with the gear at Gate 0:
@@ -64,8 +68,6 @@ Two modes — pick with the gear at Gate 0:
 ## Integration notes
 - Reserve the full two-stage review (spec then code-quality) for architecturally
   meaningful slices; light pass or own eyes on trivial ones.
-- SDD's model tiers (cheap/standard/capable per role) carry into the
-  implementer/critic agents.
 - SDD's `finishing-a-development-branch` (merge/PR) is optional for a
   single-session greenfield demo; the doctrine's close is the closing refactor
   plus final sign-off.

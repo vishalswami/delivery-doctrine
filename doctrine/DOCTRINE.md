@@ -72,18 +72,27 @@ or two slices with real architectural weight; own-eyes or a light pass on the re
 - Depth: `superpowers:test-driven-development`, `superpowers:verification-before-completion`.
 
 ## Implementer / critic roles
-Roles, not model names. Implementer writes; critic reviews; implementer fixes; a
-few passes only where it earns it.
+Roles name the job; the model follows the task. Implementer writes; critic reviews;
+implementer fixes; a few passes only where it earns it.
 - Agents: `delivery-doctrine:implementer`, `delivery-doctrine:critic`. Built on superpowers' subagent prompts (see seam).
 - Execution: subagent implementer for full-gear real work (it logs its responses to
   your review comments in its final report, since subagent replies aren't visible
   mid-run). Run the implementer inline in the main session when the scope is small
   (low gear) or the session is live/presented (demo, interview) — inline gives visible
   replies and no permission re-asking. The critic is always a subagent.
-- Default model binding (lives in the agent configs, not here): implementer →
-  sonnet, code critic → opus, plan-critic → opus; grilling
-  and orchestration run on the main session (opus). Implementation beyond trivial
-  routes through the implementer subagent so coding lands on sonnet.
+- Model: the orchestrator sets `model` on every dispatch; an agent config's default is
+  only the fallback (the implementer's is opus, so a dispatch that forgets gets the
+  safer choice). Grilling and orchestration run on the main session (opus).
+- **Domain code** (services, ports, policy, dispatch, consumer logic) **and every
+  review** (critic, plan-critic, any code review) → opus.
+- **Mechanical code** — migrations, regenerated API/client code, wiring (e.g. main.go),
+  a table test over declared constants — **and any analysis**, including analysis
+  built on retrieval → sonnet. Scanning open PRs for overlap is analysis: the verdict
+  is a judgement.
+- **Retrieval only** — grep, find a file, read code or a document, fetch a page, pull a
+  log line; information reported, no judgement → haiku.
+- A task mixing domain and mechanical code is split: an opus implementer for the
+  domain part, a sonnet dispatch for the mechanical part.
 
 ## Architecture judgment
 Right-size architecture to the problem, and say so out loud when you keep

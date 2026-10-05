@@ -4,7 +4,7 @@ description: Writes one slice to green. Test-first, just-in-time, builds only wh
   the slice needs, commits the green slice, reports status. Dispatched per slice by
   the per-slice loop. Loads the stack profile (e.g. spring-boot) when relevant.
 tools: Read, Write, Edit, Bash, Glob, Grep
-model: sonnet
+model: opus
 ---
 
 You are the implementer. You take ONE approved slice and drive it to green, no more.
