@@ -58,8 +58,9 @@ or two slices with real architectural weight; own-eyes or a light pass on the re
   cap 3 passes, 3 lenses); mechanics live in `critic.md` and `delivery-doctrine:superpowers-seam`.
 - Every local check is scoped to what the slice touched: its tests by name or pattern,
   lint on its files, the race detector once at the end on concurrent tests, the app
-  started only when wiring changed. Whole packages and full suites are CI's, on every
-  push. Depth: `delivery-doctrine:execution-hygiene`.
+  started only when wiring changed. One package run at slice close is fine; `./...`,
+  several packages, and full suites are CI's, on every push (the guard hook denies them
+  locally). Depth: `delivery-doctrine:execution-hygiene`.
 - Acceptance tests (behaviors named at the grill, written test-first per slice)
   accumulate into a suite; full gear closes by running the whole suite green against the
   running app — the deploy finale, run once at the close, not per iteration. They run
@@ -86,7 +87,8 @@ implementer fixes; a few passes only where it earns it.
 - **Domain code** (services, ports, policy, dispatch, consumer logic) **and every
   review** (critic, plan-critic, any code review) → opus.
 - **Mechanical code** — migrations, regenerated API/client code, wiring (e.g. main.go),
-  a table test over declared constants — **and any analysis**, including analysis
+  a table test over declared constants, restacking stacked branches (rebase, regenerate,
+  force-with-lease) — **and any analysis**, including analysis
   built on retrieval → sonnet. Scanning open PRs for overlap is analysis: the verdict
   is a judgement.
 - **Retrieval only** — grep, find a file, read code or a document, fetch a page, pull a
@@ -125,19 +127,6 @@ implementer/critic loop, Definition of Done, and the gates. They compose; they
 do not overlap.
 - Depth: `delivery-doctrine:superpowers-seam`.
 
-## Skill index
-- `delivery-doctrine:grill-fast` — fast/greenfield requirements grill to slice list + acceptance behaviors.
-- `delivery-doctrine:grill-brownfield` — brownfield comprehension grill (existing codebase + glossary).
-- `delivery-doctrine:thin-slice-planner` — grill output to ordered vertical slices, walking-skeleton-first.
-- `delivery-doctrine:ddd-hexagonal-reviewer` — ports/adapters + over-engineering check.
-- `delivery-doctrine:fast-path` — low-gear delivery for spikes, small tasks, and bugfixes.
-- `delivery-doctrine:narration-cue-map` — live narration windows; no dead air, protect the finish.
-- `delivery-doctrine:execution-hygiene` — running tests and long commands scoped to the change, without self-inflicted thrash.
-- `delivery-doctrine:acceptance-testing` — end-to-end slice test; in-process stubs for external boundaries.
-- `delivery-doctrine:given-when-then-tests` — language-agnostic test structure + given_when_then naming.
-- `delivery-doctrine:superpowers-seam` — how this doctrine and superpowers compose.
-- `superpowers:test-driven-development` — red-green-refactor core.
-- Java/Spring profile (loads only on Java work): `delivery-doctrine:spring-boot`, `delivery-doctrine:gwt-testing`,
-  `delivery-doctrine:readable-java-style`, `delivery-doctrine:code-quality`, `delivery-doctrine:concurrency-review`, `delivery-doctrine:security-audit`.
-- Python profile (loads only on Python work): `delivery-doctrine:python-style`, `delivery-doctrine:pytest-testing`.
-- Go profile (loads only on Go work): `delivery-doctrine:go-style`, `delivery-doctrine:go-testing`.
+## Skills
+Each skill self-describes; the harness lists them. Language profiles load only on their
+language's work: Java/Spring, Python, Go.

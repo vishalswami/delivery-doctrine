@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 warnings.simplefilter("ignore")
 
 MAX_TRANSCRIPT_BYTES = 64 * 1024 * 1024
+IDLE_GAP_S = 600
 
 
 def metrics_dir():
@@ -31,7 +32,7 @@ def metrics_dir():
 
 BASH_RULES = [
     ("test",      r"\bgo test\b|\bpytest\b|\bmake test"),
-    ("lint",      r"make lint|golangci|gofmt|goimports|\bgo vet\b|ruff|nilaway"),
+    ("lint",      r"make lint|golangci|gofmt|goimports|\bgo vet\b|ruff|nilaway|mypy|pyright|\bblack\b"),
     ("codegen",   r"make generate|go generate|atlas migrate|openapi-generator"),
     ("build",     r"\bgo build\b|make build"),
     ("git",       r"^\s*(cd [^&;]*&&\s*)?git |\bgh "),
@@ -64,7 +65,7 @@ def category(name, inp):
 # A test run is "TEST" until its result says whether it failed (red) or passed
 # (verification); model time before a call is charged to that call's phase.
 
-TEST_FAILED = re.compile(r"\bFAIL\b|panic:|build failed|undefined:")
+TEST_FAILED = re.compile(r"\bFAIL(ED)?\b|panic:|build failed|undefined:|\d+ failed|\d+ errors?\b")
 
 
 def phase(name, inp):
@@ -88,7 +89,7 @@ def phase(name, inp):
             return "wait-background-test-lint"
         if re.search(r"\bgo test\b|pytest", cmd):
             return "TEST"
-        if re.search(r"lint|golangci|gofmt|goimports|\bgo vet\b|nilaway", cmd):
+        if re.search(r"lint|golangci|gofmt|goimports|\bgo vet\b|nilaway|ruff|mypy|pyright|\bblack\b", cmd):
             return "lint-vet"
         if re.search(r"generate|atlas migrate", cmd):
             return "codegen"
@@ -108,6 +109,14 @@ def resolve_test_phase(result_block):
     if result_block.get("is_error") or TEST_FAILED.search(text_of(result_block)):
         return "red-run-failing"
     return "verify-run-passing"
+
+
+def split_idle(seconds):
+    """A gap past IDLE_GAP_S is the machine asleep or offline, not work: the
+    first IDLE_GAP_S stays where it was spent, the rest is idle. A foreground
+    Bash call cannot legitimately exceed the 600s tool timeout; a long background
+    run waited on through the harness's completion notice also lands in idle."""
+    return min(seconds, IDLE_GAP_S), max(0.0, seconds - IDLE_GAP_S)
 
 
 def ts(s):
@@ -146,6 +155,7 @@ def analyse(path):
     calls = collections.Counter()
     phase_secs = collections.Counter()
     model = 0.0
+    idle = 0.0
     last_result_at = ts(rows[0]["timestamp"])
     meta = {}
 
@@ -168,8 +178,9 @@ def analyse(path):
                 continue
             think = 0.0
             if last_result_at is not None:
-                think = max(0.0, (t - last_result_at).total_seconds())
+                think, slept = split_idle(max(0.0, (t - last_result_at).total_seconds()))
                 model += think
+                idle += slept
                 last_result_at = None
             for i, b in enumerate(uses):
                 pending[b["id"]] = (
@@ -185,7 +196,9 @@ def analyse(path):
             share = 1.0 / len(results)
             for b in results:
                 start, cat, ph, think = pending.pop(b["tool_use_id"])
-                elapsed = max(0.0, (t - start).total_seconds()) * share
+                elapsed, slept = split_idle(max(0.0, (t - start).total_seconds()))
+                elapsed *= share
+                idle += slept * share
                 secs[cat] += elapsed
                 calls[cat] += 1
                 if ph == "TEST":
@@ -199,8 +212,13 @@ def analyse(path):
 
     end = ts(rows[-1]["timestamp"])
     if last_result_at is not None:
-        model += max(0.0, (end - last_result_at).total_seconds())
+        think, slept = split_idle(max(0.0, (end - last_result_at).total_seconds()))
+        model += think
+        idle += slept
     secs["model"] = model
+    if idle:
+        secs["idle"] = idle
+        phase_secs["idle"] = idle
 
     return {
         "agent": meta.get("agent"),

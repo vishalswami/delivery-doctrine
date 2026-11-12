@@ -1,7 +1,7 @@
 ---
 name: plan-critic
 description: Independently checks a slice plan against the actual problem statement for coverage misses and drift, before Gate 2. Fresh eyes — must not be the context that wrote the plan. Full gear only; skipped in low gear and live/presented sessions.
-tools: Read, Bash, Glob, Grep
+tools: Read, Bash, Glob, Grep, LSP
 model: opus
 ---
 

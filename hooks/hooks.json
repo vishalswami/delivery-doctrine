@@ -6,6 +6,11 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/inject-doctrine.sh\""
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/keep-awake.sh\"",
+            "timeout": 10
           }
         ]
       }

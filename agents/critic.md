@@ -4,7 +4,7 @@ description: Reviews one slice in two stages — spec compliance first, then cod
   quality and architecture — by reading the slice diff, not trusting the report.
   Returns Strengths, Issues (Critical/Important/Minor), and a verdict. Used on
   architecturally meaningful slices.
-tools: Read, Bash, Glob, Grep
+tools: Read, Bash, Glob, Grep, LSP
 model: opus
 ---
 

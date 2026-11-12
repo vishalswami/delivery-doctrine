@@ -22,10 +22,19 @@ honor existing codebases), and language profiles for Java, Python, and Go.
   before code).
 - **Guard hook** — PreToolUse block on destructive commands (`rm -rf`, `sudo`,
   `pkill`/`killall`, force-push in all its spellings — `--force-with-lease` stays
-  allowed for stacked-PR restacks, `git reset --hard`, `chmod 777`).
+  allowed for stacked-PR restacks, `git reset --hard`, `chmod 777`), plus the
+  execution-hygiene rules it enforces rather than instructs: wide test runs (`go test
+  ./...` or several whole packages, bare `pytest` or several test directories; one
+  package or file stays allowed, `DOCTRINE_WIDE_TESTS=1` opts out) and
+  `while`/`until` … `sleep` poll loops.
+- **Keep-awake hook** — SessionStart, macOS only: `caffeinate` tied to the session's
+  `claude` process, so the machine does not idle-sleep mid-run (sleep was a third of
+  logged implementer time). Lid-closed still sleeps unless sleep is disabled
+  system-wide (e.g. Lidless); a once-a-day reminder says so when it is not.
 - **Timing hook** — SubagentStop, async, zero tokens: when a subagent finishes,
   appends one JSON line on how it spent the clock (seconds per tool category and per
-  doctrine phase — red, green, verification, lint, waiting) to
+  doctrine phase — red, green, verification, lint, waiting; gaps past 10 minutes,
+  the machine asleep or offline, go to `idle` rather than model time) to
   `~/.claude/doctrine-metrics/runs.jsonl`. Evidence for tuning the doctrine; read it
   with `python3 hooks/subagent_timing.py summarise`. Set `DOCTRINE_METRICS_DIR` to log
   elsewhere.

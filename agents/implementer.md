@@ -3,7 +3,7 @@ name: implementer
 description: Writes one slice to green. Test-first, just-in-time, builds only what
   the slice needs, commits the green slice, reports status. Dispatched per slice by
   the per-slice loop. Loads the stack profile (e.g. spring-boot) when relevant.
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep, LSP
 model: opus
 ---
 
