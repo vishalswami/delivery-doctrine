@@ -21,10 +21,10 @@ CLAUDE.md's execution rule).
    low gear — a small task shrinks the grill naturally; it does not remove it. Lock
    what's being built and its acceptance check.
 2. **Walking skeleton, test-first.** Write the failing acceptance test for the thin
-   end-to-end thread, then minimal code to green. Follow
-   `delivery-doctrine:test-first`; drive the entry point per `delivery-doctrine:acceptance-testing`.
-   Name the test `given<Context>_when<Action>_then<Outcome>` (per `delivery-doctrine:test-first`)
-   — this is quality, not ceremony, and is never dropped in low gear. A behavior-y
+   end-to-end thread, then minimal code to green, per `delivery-doctrine:test-first`
+   (the loop and the naming); drive the entry point per `delivery-doctrine:acceptance-testing`.
+   Name the test `given<Context>_when<Action>_then<Outcome>` — this is quality, not
+   ceremony, and is never dropped in low gear. A behavior-y
    camelCase name like `receiptsAddAndSalesRemoveInTimestampOrder` is NOT compliant;
    restructure to
    `given_receipts_and_sales_when_replayed_in_timestamp_order_then_balance_applies_in_order`.

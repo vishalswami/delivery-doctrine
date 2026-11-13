@@ -10,14 +10,15 @@ if [ "${1:-}" = "-C" ]; then
 fi
 [ $# -le 1 ] || { echo "$usage" >&2; exit 2; }
 
-common=$(git rev-parse --git-common-dir 2>/dev/null) \
+git rev-parse --git-dir >/dev/null 2>&1 \
   || { echo "build-scratch runs inside a git working tree (current directory: $PWD)" >&2; exit 2; }
-common=$(CDPATH='' cd -- "$common" && pwd -P)
-if [ "$(basename "$common")" = ".git" ]; then
-  root=$(dirname "$common")
-else
-  root=$(git rev-parse --show-toplevel)
-fi
+common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
+case "$common" in
+  /*) [ -d "$common" ] || common="" ;;
+  *) common="" ;;
+esac
+[ -n "$common" ] || common=$(CDPATH='' cd -- "$(git rev-parse --git-common-dir)" && pwd -P)
+root=$(dirname "$common")
 base="$root/.delivery-doctrine"
 
 if [ $# -eq 1 ]; then

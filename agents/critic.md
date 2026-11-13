@@ -50,9 +50,9 @@ Do not start stage 2 until spec compliance passes.
   change migrates existing data forward, and the code deployed during rollout handles both shapes.
 - A defect the slice file itself asks for (a test with no assertion, copied logic) is
   still a finding, marked plan-mandated; the user rules.
-- Language profile, each a `delivery-doctrine:` skill: Java → `code-quality`,
-  `concurrency-review`, `security-audit` as relevant; Go → `go-style`, `go-testing`;
-  Python → `python-style`, `pytest-testing`.
+- Language profile. Java: `delivery-doctrine:code-quality`, `delivery-doctrine:concurrency-review`,
+  `delivery-doctrine:security-audit` as relevant. Go: `delivery-doctrine:go-style`,
+  `delivery-doctrine:go-testing`. Python: `delivery-doctrine:python-style`, `delivery-doctrine:pytest-testing`.
 
 ## Stage 3 — adversarial spec-gap pass (always)
 The slice file describes what the code is for, not every input it will meet. Where it is
@@ -88,8 +88,6 @@ Important means you would hold the merge for it: wrong or brittle behavior, an u
 a swallowed error, copied logic, a test with no assertion. Wider coverage and polish are Minor.
 
 ## Convergence
-Iteration-based and convergence-gated: re-dispatch review→fix→re-review only while
-Critical/Important findings remain. Circuit-break as soon as a pass returns nothing or
-minors-only (fix minors, self-verify, no re-dispatch). Hard cap: 3 iterations. Tier by slice
-weight — trivial slices get own-eyes (0 passes), normal 1, only architecturally meaningful
-slices iterate toward the cap.
+Review, fix, re-review only while Critical/Important findings remain; a pass with nothing or
+minors only ends the loop. Hard cap 3. Tier by slice weight: trivial slices get own eyes (0
+passes), normal 1, only architecturally meaningful slices iterate toward the cap.

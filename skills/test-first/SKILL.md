@@ -65,10 +65,9 @@ Explicit Given-When-Then names: `given<Context>_when<Action>_then<Outcome>`.
 
 ## Comments
 
-No comments in tests — zero, no exceptions. Never annotate the phases with
-`given`/`when`/`then` marker comments: the blank lines are the separators. If an
-arrange block feels long enough to want a marker, extract a well-named helper
-instead. Reinforces the global no-comments rule.
+No comments in tests — zero, no exceptions. No `given`/`when`/`then` marker comments: the
+blank lines are the separators. An arrange block long enough to want a marker becomes a
+well-named helper.
 
 ## Common mistakes
 
@@ -78,7 +77,6 @@ instead. Reinforces the global no-comments rule.
 | Multiple When calls | Split into separate tests |
 | Name describes implementation | Rename to scenario + outcome |
 | Phases run together | Separate with blank lines |
-| Phase-marker comments | Delete; extract a helper if orientation is needed |
 
 ## Honest tests
 Each test exists to catch one specific break, and catches it against the real code.
@@ -99,6 +97,8 @@ Each test exists to catch one specific break, and catches it against the real co
   the code that reads the missing field breaks in integration.
 - **Production code carries production methods.** Teardown that exists for tests belongs
   in test helpers; a production class never grows a `reset()` for them.
+- **Behavior, not text.** A test that greps a script, skill or config file for a line
+  proves the line is there, not that it works: run it on inputs and assert output and exit code.
 - **Test your contract, not the framework's**: the endpoint you expose, the SQL you send,
   the message you publish. Getters, constructors and plain forwarding earn a test only
   when they validate, default or derive something.

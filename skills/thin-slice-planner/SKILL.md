@@ -71,8 +71,8 @@ never from fatter slices.
 - Cue: <one-glance flow sketch, e.g. `POST /booking → check overlap → persist → 201`>
 - Acceptance tests: <one GWT flow per behavior this slice owns — positive + negative/edge>
 - Touches: <files or packages where known; every hot file it edits, always>
-- Interfaces: <consumes: exact names and signatures from earlier slices; produces: what
-  later slices or wave-mates build against; "none">
+- Interfaces: <consumes: exact names and signatures already on main (slice 0's seams,
+  earlier waves) or pinned in this plan; produces: what later waves build against; "none">
 - Depends on: <slice ids + why it needs their code on main; "none">
 - Establishes: <convention or boundary introduced here, if any>
 - Risk: <most likely wrong or skipped here; "none" if trivial>
@@ -81,8 +81,9 @@ never from fatter slices.
 Slice 0 uses the same shape (Proves: end-to-end wiring). End with the **wave table**
 (wave → slices, plus any merge order or release check inside a wave), the **MVP
 vertical**, and **Deferred** (what + where it slots). Interfaces are exact signatures
-(`ReserveSeat(ctx, showID, seat) (Hold, error)`): wave-mates build against each other's
-contracts before either merges, and the slice file is all they share.
+(`ReserveSeat(ctx, showID, seat) (Hold, error)`). A slice consumes what is on main when its
+wave starts and produces for later waves. Wave-mates never build on each other's code; the
+most they share is a contract pinned in this plan, which the consumer builds against a stub.
 
 Where it is written: the spec folder (the repository profile names it; otherwise
 `docs/specs/<date>-<feature>/`). The wave table, MVP vertical and deferrals go in

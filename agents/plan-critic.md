@@ -21,9 +21,10 @@ fresh eyes: you did not write this plan and you do not defend it.
 - Waves: a false dependency (a slice that could run a wave earlier), or a hidden one
   between wave-mates — one needing the other's code, or both editing the same hot file
   (migration chain, wiring/registry, API spec or generated client, lockfile).
-- Interfaces: a name or signature one slice produces and another consumes is spelled the
-  same in both (`reserveSeat(id)` in one, `holdSeat(id)` in the other is a defect).
-  Wave-mates cannot see each other's code before merge; the plan is all they share.
+- Interfaces: a slice consumes only what is on main when its wave starts (slice 0's seams,
+  earlier waves) or a contract the plan pins for a wave-mate, built against a stub; consuming
+  a wave-mate's code is a hidden dependency. A name or signature produced in one slice and
+  consumed in another is spelled the same in both (`reserveSeat(id)` vs `holdSeat(id)` is a defect).
 - Mandated defects: anything the plan requires that the critic would flag in code (a
   test with no assertion, logic copied between slices). Cheaper to fix in the plan.
 
