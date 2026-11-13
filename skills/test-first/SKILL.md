@@ -81,32 +81,32 @@ instead. Reinforces the global no-comments rule.
 | Phase-marker comments | Delete; extract a helper if orientation is needed |
 
 ## Honest tests
-A test earns its place by catching a specific break against the real code.
-- **Name the break first.** Before the body, name the production change that would fail
-  it. If only a decision can fail it (a constant's value, a message's wording, private
-  structure), it fires on redesign and sleeps through bugs: test the behavior that
-  depends on the decision instead.
-- **Derive expectations by hand.** Literals and hand-checked fixtures. An expected value
-  built with the code under test, or its helpers, matches whatever that code does.
+Each test exists to catch one specific break, and catches it against the real code.
+- **Name the break first.** Before writing the body, say which change to production code
+  would turn it red. If only a deliberate change would (a constant's value, a message's
+  wording, private structure), the test breaks on every redesign and never on a bug:
+  assert the behavior built on that choice instead.
+- **Derive expectations by hand**, as literals or hand-checked fixtures. A value produced
+  by the code under test, or by its helpers, agrees with it whatever it does.
 - **A mock earns no assertion.** Asserting a mock was called proves the mock exists.
   Assert the outcome; assert arguments, counts or order only when the interaction is the
   contract, and then give each branch its own double.
-- **Mock at the slow or external level.** Learn the real method's side effects first and
-  keep the ones the test depends on real. External boundaries get in-process stubs
-  (`delivery-doctrine:acceptance-testing`); everything inside stays real. When mock setup
-  outgrows the test, use the real components.
+- **Mock at the slow or external level.** Know what the real method does as a side effect
+  before replacing it, and leave real whatever the test relies on. External boundaries get
+  in-process stubs (`delivery-doctrine:acceptance-testing`); everything inside stays real.
+  Once the doubles take more lines than the test itself, switch to the real components.
 - **Mirror real payloads completely**, every documented field: a partial fake passes while
   the code that reads the missing field breaks in integration.
-- **Production code carries production methods.** Cleanup only tests need lives in test
-  utilities, not as a `destroy()` on the production class.
-- **Test your contract, not the framework's**: the route you register, the query you
-  emit, the payload you produce. Getters, constructors and plain forwarding earn a test
-  only when they validate, default or derive something.
+- **Production code carries production methods.** Teardown that exists for tests belongs
+  in test helpers; a production class never grows a `reset()` for them.
+- **Test your contract, not the framework's**: the endpoint you expose, the SQL you send,
+  the message you publish. Getters, constructors and plain forwarding earn a test only
+  when they validate, default or derive something.
 
 ## Before calling it done
-Mutate the production code in your head: a wrong constant or argument, the wrong branch,
-a missing side effect, an empty or default return, missing validation for zero, empty,
-null, unauthorized or malformed input. Each should fail at least one test; a mutation
+Mutate the production code in your head: swap a constant or argument, take the other
+branch, drop a side effect, return empty or the default, skip the check on zero, empty,
+null, malformed or unauthorized input. Each should fail at least one test; a mutation
 nothing catches is an unprotected behavior.
 
 Stop and restart the loop on any of these: production code with no failing test before
