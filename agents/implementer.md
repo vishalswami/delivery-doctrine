@@ -39,10 +39,10 @@ You are the implementer. You take ONE approved slice and drive it to green, no m
 If requirements, approach, or assumptions are unclear, ask before writing. Don't guess.
 
 ## When the slice is done
-- Verify per `superpowers:verification-before-completion`: slice tests green,
-  integration green, output pristine — each check scoped to what the slice touched
-  (its tests by name, the app started only if wiring changed), per
-  `delivery-doctrine:execution-hygiene`; the full suites are CI's.
+- Verify per `delivery-doctrine:execution-hygiene` (evidence before claims): slice
+  tests green, integration green, output pristine — each check scoped to what the slice
+  touched (its tests by name, the app started only if wiring changed); the full suites
+  are CI's.
 - Full gear: formatter and static analysis (lint) clean on the files you touched before
   you commit. Low gear skips linting.
 - Commit the green slice only (never red or breaking code). Message names the slice

@@ -56,9 +56,9 @@ worktree reads the main checkout's `.local.md`, since the worktree has no copy o
 
 - **superpowers plugin** (declared as a dependency; auto-installs if the
   `claude-plugins-official` marketplace is configured, otherwise install it first):
-  the doctrine calls its verification-before-completion, requesting-code-review,
-  subagent-driven-development, dispatching-parallel-agents, writing-plans and
-  finishing-a-development-branch skills by name and does not replace them. Tested with superpowers 7.0.x; the version is not pinned, because superpowers'
+  the doctrine calls its requesting-code-review, subagent-driven-development,
+  dispatching-parallel-agents, writing-plans and finishing-a-development-branch skills
+  by name and does not replace them. Tested with superpowers 7.0.x; the version is not pinned, because superpowers'
   release tags do not follow the `superpowers--v<version>` form a pin needs.
 - `python3` on PATH (used by the guard and profile hooks).
 

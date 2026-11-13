@@ -82,7 +82,7 @@ a light pass on the rest.
   files the slice touched, before the commit. (Enforcing git hook: the DoD hook, later.)
 - Low gear collapses the loop: walking skeleton green, one critic pass, own eyes, run,
   commit; no acceptance suite, no lint (see Gears / `delivery-doctrine:fast-path`).
-- Depth: `delivery-doctrine:test-first`, `superpowers:verification-before-completion`.
+- Depth: `delivery-doctrine:test-first`, `delivery-doctrine:execution-hygiene`.
 
 ## Implementer / critic roles
 Roles name the job; the model follows the task. Implementer writes; critic reviews;

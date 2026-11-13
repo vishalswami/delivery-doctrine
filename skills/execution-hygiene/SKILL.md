@@ -1,8 +1,10 @@
 ---
 name: execution-hygiene
-description: Use when running tests, lint, or any long/slow command. Prevents
-  self-inflicted thrash — scope every local check to what you changed and run it in the
-  foreground, thread-dump on hang, kill only the PID you own. Language-agnostic.
+description: Use when running tests, lint, or any long/slow command, and before
+  claiming anything is green, fixed or done. Prevents self-inflicted thrash — scope every
+  local check to what you changed and run it in the foreground, long output to a file,
+  thread-dump on hang, kill only the PID you own — and makes every claim rest on fresh
+  output. Language-agnostic.
 ---
 
 # Execution Hygiene
@@ -35,3 +37,35 @@ CI's, on every push.
 - **Kill only the PID you own.** Never kill a shared tool, or a port you aren't tracking —
   you will take down the run you just launched. (Blanket `pkill`/`killall` are denied at
   the permission layer; the discipline still applies to port-based kills.)
+- **Long output goes to a file; read its tail.** A test log, a build or a package lint
+  goes to a file in the build scratch dir (`.delivery-doctrine/<spec>/`, git-ignored) or
+  the session scratchpad, and you read the summary and the first failure, then search the
+  file for anything else. A whole log in context crowds out the work it was run for.
+  ```
+  go test -run '^TestOrder' ./internal/order > .delivery-doctrine/orders/run.log 2>&1; echo "exit=$?"
+  tail -n 40 .delivery-doctrine/orders/run.log
+  ```
+
+## Evidence before claims
+"Green", "fixed" and "done" are claims, and a claim rests on output produced in this
+turn: not memory, not an earlier run, not a report.
+1. Name the command that proves it: the scoped check above; breadth is CI's.
+2. Run it.
+3. Read the exit code and the output: failures, errors, stray warnings.
+4. Claim with the evidence (the command and its result in a line), or state the real
+   status if the output disagrees.
+
+What each claim needs:
+- **Tests pass**: zero failures in the run, and output free of new warnings.
+- **Lint clean, builds**: that tool's own exit 0; a clean lint says nothing about the build.
+- **Bug fixed**: the reproduction test of the original symptom, seen red, now green.
+- **Regression test works**: seen red, then green. Never watched it fail? Revert the fix,
+  watch it fail, restore.
+- **Slice meets its spec**: each acceptance behavior checked against the slice file, not
+  inferred from a green run.
+- **A subagent's DONE**: its report is a claim. The evidence is the branch:
+  `git -C <worktree> log --stat BASE..HEAD` shows the commits and files the report names.
+  The lead checks it before dispatching the critic.
+
+"Should pass", "probably", "seems to", or "Done!" before a run all mean the check has
+not happened yet: run it.
