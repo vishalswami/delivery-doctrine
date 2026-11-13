@@ -32,9 +32,8 @@ the feature is live; never run it unprompted.
    deferred.md, or into the receiving spec with a pointer left behind.
 3. **Delete.** `git rm -r` slices/ and slices.md. Search the repository for links to them
    and point each at the doc that now holds the fact. Other files in the folder (grill
-   logs, research) stay. Remove the build's git-ignored scratch dir too (ledger, reports,
-   review packages): `rm -r` the path that
-   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/build-scratch <spec-folder>` prints.
+   logs, research) stay. Remove the build's git-ignored scratch dir too (ledger, review
+   packages): `rm -r` the path that `build-scratch <spec-folder>` prints.
 4. **Fact-check, deduplicate, tighten.** Check every claim in the three docs against the
    merged code and the PRs, and correct it to what was built. Say each fact once, in the
    doc it belongs to; replace repeats with a pointer or delete them. Cut anything that no

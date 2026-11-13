@@ -61,7 +61,7 @@ On a PR, reply inside the comment's thread, never as a new top-level comment, th
 the thread; the wave gate needs every thread resolved.
 ```
 gh api repos/{owner}/{repo}/pulls/<pr>/comments/<comment-id>/replies -f body='Fixed in 3f2a1c9: ...'
-gh api graphql -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){reviewThreads(first:100){nodes{id isResolved path comments(first:1){nodes{databaseId body}}}}}}}' -f o=<owner> -f r=<repo> -F n=<pr>
+gh api graphql -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){reviewThreads(first:100){nodes{id isResolved path comments(first:1){nodes{databaseId body}}}}}}}' -F o='{owner}' -F r='{repo}' -F n=<pr>
 gh api graphql -f query='mutation($t:ID!){resolveReviewThread(input:{threadId:$t}){thread{isResolved}}}' -f t=<thread-id>
 ```
 The first query maps each thread id to its first comment's `databaseId`, the id the reply

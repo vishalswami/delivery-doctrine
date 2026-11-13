@@ -20,9 +20,11 @@ and language profiles for Java, Python, and Go.
   language profiles — Java (`spring-boot`, `gwt-testing`, `readable-java-style`,
   `code-quality`, `concurrency-review`, `security-audit`), Python (`python-style`,
   `pytest-testing`), Go (`go-style`, `go-testing`).
-- **2 scripts** — `build-scratch` (the build's git-ignored scratch dir, shared by every
-  worktree) and `review-package` (one file holding a slice's commits, stat and diff for the
-  critic). The skills call them by their plugin path.
+- **2 commands in `bin/`** — `build-scratch` (the lead's git-ignored scratch dir at the main
+  checkout's root) and `review-package` (one file holding a slice's commits, stat and diff
+  for the critic). Claude Code puts `bin/` on the Bash tool's PATH while the plugin is
+  enabled, so the skills call them by bare name. claude.ai and Cowork do not install a
+  plugin with a top-level `bin/`; this one is for Claude Code.
 - **3 agents** — `implementer` (opus by default, the deep tier unless remapped; mechanical
   work is dispatched on the standard tier), `critic` (deep, 3-lens review), `plan-critic`
   (deep, coverage/drift check before code). Tiers map to models in your profile; defaults
@@ -60,7 +62,7 @@ worktree reads the main checkout's `.local.md`, since the worktree has no copy o
 ## Requirements
 
 - `python3` on PATH (used by the guard and profile hooks).
-- `bash` and `git` (used by the scripts).
+- `bash` and `git` (used by the `bin/` commands).
 - `gh`, for team mode's PRs and review threads.
 
 ## Install
@@ -108,6 +110,10 @@ want fewer prompts, you can auto-allow reading and searching and keep edits gate
   }
 }
 ```
+
+To run the two bundled commands without a prompt, add `"Bash(build-scratch *)"` and
+`"Bash(review-package *)"` to `allow`. They read git and write only the scratch dir or the
+package file you name.
 
 Adding `"Bash"` to `allow` runs every shell command without asking, with only the guard
 hook's blocklist as a brake. Do that only if you accept that risk.

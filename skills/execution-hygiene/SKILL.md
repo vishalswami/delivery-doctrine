@@ -38,14 +38,15 @@ CI's, on every push.
   you will take down the run you just launched. (Blanket `pkill`/`killall` are denied at
   the permission layer; the discipline still applies to port-based kills.)
 - **Long output goes to a file; read its tail.** A test log, a build or a package lint
-  goes to a file in the build scratch dir or the session scratchpad, and you read the
+  goes to a file in a git-ignored scratch dir or the session scratchpad, and you read the
   summary and the first failure, then search the file for anything else. A whole log in
-  context crowds out the work it was run for. The scratch dir sits at the main checkout's
-  root, shared by every worktree: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/build-scratch <spec-folder>`
-  prints its absolute path, and you write to that path, never a relative one.
+  context crowds out the work it was run for. An implementer writes to its own worktree's
+  `.delivery-doctrine/` (its `.gitignore` holds `*`), since a worktree subagent cannot write
+  into the main checkout; the lead uses the dir `build-scratch <spec-folder>` prints. Always
+  an absolute path.
   ```
-  go test -run '^TestOrder' ./internal/order > /work/shop/.delivery-doctrine/orders/run.log 2>&1; echo "exit=$?"
-  tail -n 40 /work/shop/.delivery-doctrine/orders/run.log
+  go test -run '^TestOrder' ./internal/order > /work/shop/.claude/worktrees/s3/.delivery-doctrine/run.log 2>&1; echo "exit=$?"
+  tail -n 40 /work/shop/.claude/worktrees/s3/.delivery-doctrine/run.log
   ```
 
 ## Evidence before claims
