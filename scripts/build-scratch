@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage="usage: build-scratch [-C DIR] [SPEC_FOLDER]"
+
+if [ "${1:-}" = "-C" ]; then
+  [ -d "${2:-}" ] || { echo "bad -C directory: ${2:-}" >&2; exit 2; }
+  cd "$2"
+  shift 2
+fi
+[ $# -le 1 ] || { echo "$usage" >&2; exit 2; }
+
+common=$(git rev-parse --git-common-dir 2>/dev/null) \
+  || { echo "build-scratch runs inside a git working tree (current directory: $PWD)" >&2; exit 2; }
+common=$(CDPATH='' cd -- "$common" && pwd -P)
+if [ "$(basename "$common")" = ".git" ]; then
+  root=$(dirname "$common")
+else
+  root=$(git rev-parse --show-toplevel)
+fi
+base="$root/.delivery-doctrine"
+
+if [ $# -eq 1 ]; then
+  name=$(basename "${1%/}")
+  case "$name" in
+    ""|.|..) echo "cannot derive a scratch name from: $1" >&2; exit 2 ;;
+  esac
+  dir="$base/$name"
+  mkdir -p "$dir"
+else
+  found=0
+  for candidate in "$base"/*/; do
+    [ -d "$candidate" ] || continue
+    found=$((found + 1))
+    dir=${candidate%/}
+  done
+  [ "$found" -eq 1 ] \
+    || { echo "name the spec folder: $found scratch dirs under $base; $usage" >&2; exit 2; }
+fi
+
+[ -e "$base/.gitignore" ] || printf '*\n' > "$base/.gitignore"
+printf '%s\n' "$dir"

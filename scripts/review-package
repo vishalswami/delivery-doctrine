@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage="usage: review-package [-C DIR] BASE HEAD [OUTFILE]"
+here=$(cd "$(dirname "$0")" && pwd)
+
+if [ "${1:-}" = "-C" ]; then
+  [ -d "${2:-}" ] || { echo "bad -C directory: ${2:-}" >&2; exit 2; }
+  cd "$2"
+  shift 2
+fi
+[ $# -eq 2 ] || [ $# -eq 3 ] || { echo "$usage" >&2; exit 2; }
+
+git rev-parse --show-toplevel >/dev/null 2>&1 \
+  || { echo "review-package runs inside a git working tree (current directory: $PWD)" >&2; exit 2; }
+
+base=$1
+head=$2
+git rev-parse --verify --quiet "${base}^{commit}" >/dev/null || { echo "bad BASE: $base" >&2; exit 2; }
+git rev-parse --verify --quiet "${head}^{commit}" >/dev/null || { echo "bad HEAD: $head" >&2; exit 2; }
+
+git merge-base --is-ancestor "$base" "$head" \
+  || { echo "HEAD is not a descendant of BASE: ${base}..${head}" >&2; exit 3; }
+commits=$(git rev-list --count "${base}..${head}")
+[ "$commits" -gt 0 ] || { echo "empty commit range: ${base}..${head}" >&2; exit 3; }
+
+if [ $# -eq 3 ]; then
+  out=$3
+else
+  dir=$("${BASH:-bash}" "$here/build-scratch")
+  out="$dir/review-$(git rev-parse --short "$base")..$(git rev-parse --short "$head").diff"
+fi
+
+{
+  echo "# Review package: ${base}..${head}"
+  echo
+  echo "## Commits"
+  git log --oneline "${base}..${head}"
+  echo
+  echo "## Files changed"
+  git diff --stat "${base}..${head}"
+  echo
+  echo "## Diff"
+  git diff -U10 "${base}..${head}"
+} > "$out"
+
+echo "wrote ${out}: ${commits} commit(s), $(wc -c < "$out" | tr -d ' ') bytes"
