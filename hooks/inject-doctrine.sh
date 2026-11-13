@@ -18,7 +18,7 @@ show() {
 
 [ -f "$HOME/.claude/delivery-doctrine.md" ] && show "$HOME/.claude/delivery-doctrine.md" "Personal profile (~/.claude/delivery-doctrine.md)"
 
-cwd=$(python3 -c 'import json,os; print(json.loads(os.environ.get("HOOK_INPUT") or "{}").get("cwd") or "")' 2>/dev/null)
+cwd=$(python3 -I -c 'import json,os; print(json.loads(os.environ.get("HOOK_INPUT") or "{}").get("cwd") or "")' 2>/dev/null)
 root=$(git -C "${cwd:-.}" rev-parse --show-toplevel 2>/dev/null) || exit 0
 main=$(git -C "$root" worktree list --porcelain 2>/dev/null | awk 'NR==1 {sub(/^worktree /, ""); path=$0} NR==2 && $0=="bare" {path=""} END {print path}')
 

@@ -2,7 +2,7 @@
 # PreToolUse guard for Bash: blocks destructive commands the doctrine enforces
 # rather than instructs. Allows git push --force-with-lease (rebasing a PR onto new main).
 export HOOK_INPUT="$(cat)"
-python3 - <<'PY'
+python3 -I - <<'PY'
 import json, os, re, sys
 
 try:

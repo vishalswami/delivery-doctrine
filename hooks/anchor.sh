@@ -5,7 +5,7 @@
 # DOCTRINE_ANCHOR=0 turns it off; DOCTRINE_ANCHOR_TOKENS sets the threshold (default 150000).
 export HOOK_INPUT="$(cat)"
 [ "${DOCTRINE_ANCHOR:-1}" = "0" ] && exit 0
-python3 - <<'PY' 2>/dev/null
+python3 -I - <<'PY' 2>/dev/null
 import json, os
 
 ANCHOR = """Delivery doctrine, restated because this session is long:
