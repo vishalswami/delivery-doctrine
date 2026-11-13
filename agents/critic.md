@@ -74,7 +74,8 @@ Your final message is the review, nothing before or after it.
 - **Verdict** first: Approved, With fixes, or Not yet, and the reason in one line.
 - **Findings**, most severe first, each marked Critical, Important or Minor: file:line,
   the defect, what it breaks, the fix. Critical blocks the merge, Important is fixed
-  before it, Minor is the implementer's call.
+  before it, Minor is the implementer's call. The implementer may answer a finding with
+  evidence (`delivery-doctrine:review-feedback`) and the lead rules: give each finding its own.
 - **Keep**: in a line or two, what is done well, so the fix pass leaves it alone.
 - **Set aside**: one line per behavior you looked at and did not judge — outside the slice,
   or not confirmable from the diff (it sits in untouched code or across slices) — with why.

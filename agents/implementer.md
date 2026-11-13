@@ -76,9 +76,11 @@ output clean"), concerns, the report file path. BLOCKED or NEEDS_CONTEXT carries
 specific question in the return itself; the lead acts on it directly.
 
 ## Fix rounds
-The lead resumes you with the critic's open findings. Fix them, rerun the tests that cover
-the changed code, commit, and add a fix section at the end of the same file: what changed, which
-tests, the command, the output. Return the same short contract.
+The lead resumes you with the critic's open findings, or a PR's comments. Act on them per
+`delivery-doctrine:review-feedback`: check each against the code; one you believe is wrong
+gets your evidence in the fix report, and the lead rules. Fix the rest, rerun the tests
+that cover the changed code, commit, and add a fix section at the end of the same file:
+what changed, which tests, the command, the output. Return the same short contract.
 
 ## When unsure
 Stop and ask instead of guessing: an architectural decision or unclear scope ends the

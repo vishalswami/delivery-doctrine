@@ -81,7 +81,8 @@ line and its commits is never redone. Close-out deletes the dir.
    smallest unblocking change, carried into every dependent dispatch. Nothing is dropped
    silently, and ruling before the cap is pre-judging under another name.
 9. **Push and PR** (team mode): the lead pushes once per slice after review and opens the
-   PR. Review bots run after push and do not replace the critic. A push the remote refuses
+   PR. Review bots run after push and do not replace the critic; their threads and human
+   comments are handled per `delivery-doctrine:review-feedback`, down to resolving each. A push the remote refuses
    means someone else pushed: fetch and look, never force. A PR's worktree stays while it is open.
 10. **Wave gate.** When every PR of the wave is open and critic-clean, show them together
    with every ruling made inside the wave. On the go-ahead, merge each once mergeable under
@@ -104,12 +105,12 @@ into local main on the go-ahead, with the slice's tests run on the merged tree b
 ## Inline mode
 Low gear and live sessions: the lead is the implementer, slices run one after another on a
 branch in place (a worktree only when the profile asks; `EnterWorktree` then). Reread the
-slice file before each slice: memory keeps a summary, the file keeps the values. Plan wrong →
-rule and ledger; code wrong → `delivery-doctrine:systematic-debugging`. The critic stays a
-subagent, once per meaningful slice, because the author's own read shares the author's blind
-spots. Its Critical and Important findings are fixed test-first, a reproducing test red then
-green, with no re-review; minors go to the ledger. In a live session the wave table's status
-column can serve as the ledger.
+slice file before each slice: memory keeps a summary, the file keeps the values. A wrong
+plan gets a ruling and a ledger line; wrong code gets `delivery-doctrine:systematic-debugging`.
+The critic stays a subagent, once per meaningful slice, because the author's own read shares
+the author's blind spots. Its Critical and Important findings are fixed test-first, a
+reproducing test red then green, with no re-review; minors go to the ledger. In a live
+session the wave table's status column can serve as the ledger.
 
 ## Models and narration
 `model` is set on every dispatch. Turn count beats token price: a cheaper model that takes
