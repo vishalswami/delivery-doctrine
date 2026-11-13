@@ -1,11 +1,11 @@
 ---
 name: gwt-testing
-description: Use when writing or reviewing JUnit 5 tests in Java — the Java/JUnit specialization of given-when-then-tests (GWT structure, given_when_then naming, zero comments).
+description: Use when writing or reviewing JUnit 5 tests in Java — the Java/JUnit specialization of test-first (GWT structure, given_when_then naming, zero comments).
 ---
 
 # Given-When-Then Testing (JUnit 5)
 
-The Java/JUnit 5 specialization of `delivery-doctrine:given-when-then-tests`. Everything in that skill
+The Java/JUnit 5 specialization of `delivery-doctrine:test-first`. Everything in that skill
 applies unchanged — blank-line phase structure, `given<Context>_when<Action>_then<Outcome>`
 naming, exactly one act per test, zero comments. This file adds only the JUnit specifics.
 
@@ -26,6 +26,6 @@ void givenExpiredJwt_whenPreHandle_thenRejectedWith401() {
 - `@Test` is the marker — no `test` prefix.
 - Two acts → two tests.
 
-## TDD pairing
-Inside `superpowers:test-driven-development`: write the GWT test RED first (it won't
-compile), implement to GREEN, then refactor. Full rules live in `delivery-doctrine:given-when-then-tests`.
+## Test-first pairing
+The loop is `delivery-doctrine:test-first`'s. A new test that does not compile is not red
+yet: add the empty method, see the assertion fail, then implement to GREEN and refactor.

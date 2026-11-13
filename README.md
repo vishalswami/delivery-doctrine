@@ -1,9 +1,9 @@
 # Delivery Doctrine
 
 A gear-based agentic delivery method for Claude Code. Hypothesis-first grilling, thin
-vertical slices behind hard alignment gates, an implementer/critic loop built on
-superpowers' TDD core, right-sized architecture (hexagonal only where it earns it,
-honor existing codebases), and language profiles for Java, Python, and Go.
+vertical slices behind hard alignment gates, a test-first implementer/critic loop,
+right-sized architecture (hexagonal only where it earns it, honor existing codebases),
+and language profiles for Java, Python, and Go.
 
 ## What's in the box
 
@@ -14,7 +14,7 @@ honor existing codebases), and language profiles for Java, Python, and Go.
   `thin-slice-planner` (waves of parallel PRs, + plan-critic gate), `superpowers-seam`,
   `close-out` (once live: consolidate slice files into plan/design/deferred, delete them, fact-check and tighten the three, update each bounded context's context file),
   `ddd-hexagonal-reviewer`, `fast-path` (low gear), `acceptance-testing`,
-  `given-when-then-tests`, `execution-hygiene`, `narration-cue-map`; plus language
+  `test-first`, `execution-hygiene`, `narration-cue-map`; plus language
   profiles — Java (`spring-boot`, `gwt-testing`, `readable-java-style`, `code-quality`,
   `concurrency-review`, `security-audit`), Python (`python-style`, `pytest-testing`),
   Go (`go-style`, `go-testing`).
@@ -56,10 +56,9 @@ worktree reads the main checkout's `.local.md`, since the worktree has no copy o
 
 - **superpowers plugin** (declared as a dependency; auto-installs if the
   `claude-plugins-official` marketplace is configured, otherwise install it first):
-  the doctrine calls its test-driven-development, verification-before-completion,
-  requesting-code-review, subagent-driven-development, dispatching-parallel-agents,
-  writing-plans and finishing-a-development-branch skills by name and does not replace
-  them. Tested with superpowers 7.0.x; the version is not pinned, because superpowers'
+  the doctrine calls its verification-before-completion, requesting-code-review,
+  subagent-driven-development, dispatching-parallel-agents, writing-plans and
+  finishing-a-development-branch skills by name and does not replace them. Tested with superpowers 7.0.x; the version is not pinned, because superpowers'
   release tags do not follow the `superpowers--v<version>` form a pin needs.
 - `python3` on PATH (used by the guard and profile hooks).
 

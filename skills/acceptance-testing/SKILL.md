@@ -24,7 +24,7 @@ flows); all of them green is the slice's done-criterion.
 - **Keep the layers apart from unit tests.** Lighter mocks are for fast per-slice
   unit tests, not the acceptance layer.
 - **Name by given-when-then.** Every acceptance test uses the
-  `given<Context>_when<Action>_then<Outcome>` shape (see `delivery-doctrine:given-when-then-tests`, and
+  `given<Context>_when<Action>_then<Outcome>` shape (see `delivery-doctrine:test-first`, and
   `delivery-doctrine:gwt-testing` for Java). A descriptive name like
   `page_flags_incomplete_and_zero_length_shifts` is NOT compliant — restructure it,
   e.g. `given_incomplete_page_with_zero_length_shifts_when_validated_then_flagged`.
@@ -38,7 +38,7 @@ whole suite runs once, at the close, green against the running app — the "depl
 finale, a closing run and not a per-iteration gate. Low gear skips the suite.
 
 ## Pairing
-- Structure and naming of the test: `delivery-doctrine:given-when-then-tests` (and `delivery-doctrine:gwt-testing` for Java).
-- Red-green-refactor loop: `superpowers:test-driven-development`.
+- Red-green-refactor loop, structure and naming of the test: `delivery-doctrine:test-first`
+  (and `delivery-doctrine:gwt-testing` for Java).
 - Where behaviors originate: the grill names them (the plan); `delivery-doctrine:thin-slice-planner` maps
   each to a slice; the test is written test-first in that slice.

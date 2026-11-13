@@ -1,13 +1,13 @@
 ---
 name: go-testing
 description: Use when writing or reviewing Go tests — the Go specialization of
-  given-when-then-tests. Table-driven tests with given/when/then case names, t.Parallel,
+  test-first. Table-driven tests with given/when/then case names, t.Parallel,
   mockery mocks at ports only, testify assertions, -race once at the end on concurrent code.
 ---
 
 # Go Testing
 
-The Go specialization of `delivery-doctrine:given-when-then-tests`. Everything there applies — blank-line
+The Go specialization of `delivery-doctrine:test-first`. Everything there applies — blank-line
 phases, one act per test, zero comments. Go specifics below.
 
 ## Naming

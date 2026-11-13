@@ -22,8 +22,8 @@ CLAUDE.md's execution rule).
    what's being built and its acceptance check.
 2. **Walking skeleton, test-first.** Write the failing acceptance test for the thin
    end-to-end thread, then minimal code to green. Follow
-   `superpowers:test-driven-development`; drive the entry point per `delivery-doctrine:acceptance-testing`.
-   Name the test `given<Context>_when<Action>_then<Outcome>` (per `delivery-doctrine:given-when-then-tests`)
+   `delivery-doctrine:test-first`; drive the entry point per `delivery-doctrine:acceptance-testing`.
+   Name the test `given<Context>_when<Action>_then<Outcome>` (per `delivery-doctrine:test-first`)
    — this is quality, not ceremony, and is never dropped in low gear. A behavior-y
    camelCase name like `receiptsAddAndSalesRemoveInTimestampOrder` is NOT compliant;
    restructure to

@@ -7,7 +7,7 @@ rules; depth lives in the on-demand skills named below.
 State your read of the problem as a falsifiable hypothesis, grill it against the truth
 (problem statement, or codebase if brownfield), slice the work into thin vertical
 behaviors, build each slice test-first, and confirm at every gate before moving on.
-Reuse what exists (superpowers TDD, the skills below) over reinventing. Right-size
+Reuse what exists (the skills below, the codebase's patterns) over reinventing. Right-size
 everything to the problem.
 
 ## Gears (pick first — Gate 0)
@@ -82,7 +82,7 @@ a light pass on the rest.
   files the slice touched, before the commit. (Enforcing git hook: the DoD hook, later.)
 - Low gear collapses the loop: walking skeleton green, one critic pass, own eyes, run,
   commit; no acceptance suite, no lint (see Gears / `delivery-doctrine:fast-path`).
-- Depth: `superpowers:test-driven-development`, `superpowers:verification-before-completion`.
+- Depth: `delivery-doctrine:test-first`, `superpowers:verification-before-completion`.
 
 ## Implementer / critic roles
 Roles name the job; the model follows the task. Implementer writes; critic reviews;
@@ -139,8 +139,8 @@ explain a skill, justify a decision, or review the prior slice by hand.
 - Depth: `delivery-doctrine:narration-cue-map`.
 
 ## The seam (superpowers and this doctrine)
-Superpowers owns the TDD red-green-refactor core and the coverage that falls out
-of it. This doctrine owns the orchestration: grilling, vertical slicing, the
+Superpowers supplies the subagent and review mechanics the seam names. This
+doctrine owns test-first and the orchestration: grilling, vertical slicing, the
 implementer/critic loop, Definition of Done, and the gates. They compose; they
 do not overlap.
 - Depth: `delivery-doctrine:superpowers-seam`.

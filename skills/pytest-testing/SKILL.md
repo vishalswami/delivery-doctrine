@@ -1,13 +1,13 @@
 ---
 name: pytest-testing
 description: Use when writing or reviewing pytest tests in Python — the Python
-  specialization of given-when-then-tests. Given-When-Then structure, test_given_when_then
+  specialization of test-first. Given-When-Then structure, test_given_when_then
   naming (pytest requires the test_ prefix), one act per test, zero comments.
 ---
 
 # Pytest Testing
 
-The Python/pytest specialization of `delivery-doctrine:given-when-then-tests`. Everything there applies —
+The Python/pytest specialization of `delivery-doctrine:test-first`. Everything there applies —
 blank-line phases, one act per test, zero comments. This adds only the pytest specifics.
 
 ## Naming
@@ -38,6 +38,6 @@ def test_given_expired_token_when_authenticating_then_rejected():
   or `-k given_expired_token`; never a bare `pytest` as the red/green loop — scope per
   `delivery-doctrine:execution-hygiene`.
 
-## TDD pairing
-Inside `superpowers:test-driven-development`: RED first, GREEN minimal, refactor. Full
-structure rules live in `delivery-doctrine:given-when-then-tests`.
+## Test-first pairing
+The loop is `delivery-doctrine:test-first`'s: RED for the right reason (an assertion, not
+an `ImportError`), GREEN minimal, refactor.

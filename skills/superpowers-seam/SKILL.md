@@ -1,8 +1,8 @@
 ---
 name: superpowers-seam
 description: Use when running the delivery loop with superpowers installed. Defines
-  who owns what between superpowers (TDD, subagent prompts, code review) and this
-  doctrine (grill, slicing, gates), so they compose instead of fighting.
+  who owns what between superpowers (subagent prompts, code review) and this
+  doctrine (grill, slicing, test-first, gates), so they compose instead of fighting.
 ---
 
 # Superpowers Seam
@@ -11,12 +11,12 @@ Superpowers owns the inner mechanics; this doctrine owns the orchestration. They
 compose. Where they overlap, this file says who wins.
 
 ## Ownership
-- superpowers `test-driven-development` — red-green-refactor inner loop.
 - superpowers `subagent-driven-development` — implementer + spec/code-quality
   reviewer prompts, status handling.
 - superpowers `requesting-code-review` — critic dispatch (diff + template).
 - superpowers `writing-plans` — bite-sized TDD step format only.
 - doctrine `delivery-doctrine:grill-fast` — requirements grill.
+- doctrine `delivery-doctrine:test-first` — red-green-refactor inner loop, test structure.
 - doctrine `delivery-doctrine:thin-slice-planner` — vertical slice decomposition into waves,
   walking-skeleton-first.
 - doctrine — per-wave loop, Definition of Done, alignment gates, narration, model
@@ -32,8 +32,8 @@ compose. Where they overlap, this file says who wins.
 2. **thin-slice-planner owns decomposition; writing-plans is format only.**
    Decompose by end-to-end behavior (vertical), not by file/responsibility.
    Expand an approved slice into writing-plans' bite-sized TDD steps if useful.
-3. **TDD is the shared core, unforked.** Implementer subagent and the per-slice
-   red-to-green both call `test-driven-development` as-is.
+3. **Test-first is the doctrine's own.** The implementer subagent and the inline
+   per-slice red-to-green both follow `delivery-doctrine:test-first`.
 4. **The lead decides what to delegate.** Design decisions stay with the lead;
    mechanical slices go to the implementer subagent. Which slices, if any, the
    lead writes by hand is a runtime call, not fixed by this doctrine.

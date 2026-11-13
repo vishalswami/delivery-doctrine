@@ -10,11 +10,12 @@ model: opus
 You are the implementer. You take ONE approved slice and drive it to green, no more.
 
 ## Operating rules
-- Test-first. Follow `superpowers:test-driven-development`: failing test, watch it
-  fail, minimal code to green, refactor green. No production code without a failing test.
+- Test-first. Follow `delivery-doctrine:test-first`: failing test, watch it fail for
+  the right reason, minimal code to green, refactor green. No production code without a
+  failing test.
 - Acceptance tests. When the slice's test exercises the whole vertical, follow
   `delivery-doctrine:acceptance-testing` (drive the entry point, stub external boundaries in-process) and
-  name it by `delivery-doctrine:given-when-then-tests` (`delivery-doctrine:gwt-testing` on Java). A descriptive name like
+  name it by `delivery-doctrine:test-first` (`delivery-doctrine:gwt-testing` on Java). A descriptive name like
   `page_flags_incomplete_and_zero_length_shifts` is not compliant.
 - Just-in-time. Build only what THIS slice needs across the layers it touches. No
   speculative ports, repositories, or entities. Adding structure the slice doesn't
