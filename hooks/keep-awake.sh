@@ -12,7 +12,7 @@ while [ "${pid:-0}" -gt 1 ] && ! ps -o comm= -p "$pid" | grep -q 'claude'; do
 done
 [ "${pid:-0}" -gt 1 ] || exit 0
 
-pgrep -qf "caffeinate -ims -w $pid\$" || nohup caffeinate -ims -w "$pid" > /dev/null 2>&1 &
+pgrep -qf "caffeinate -ims -w $pid\$" || { nohup caffeinate -ims -w "$pid" > /dev/null 2>&1 & }
 
 if [ -d /Applications/Lidless.app ] && pmset -g | grep -q 'SleepDisabled[[:space:]]*0'; then
     stamp="${DOCTRINE_METRICS_DIR:-$HOME/.claude/doctrine-metrics}/lid-reminder"
