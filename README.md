@@ -34,18 +34,6 @@ honor existing codebases), and language profiles for Java, Python, and Go.
   system-wide (`pmset disablesleep`, or an app that sets it); `DOCTRINE_LID_REMINDER=1`
   adds a once-a-day reminder when it is not, and `DOCTRINE_KEEP_AWAKE=0` turns the
   hook off.
-- **Timing hook** — SubagentStop, async, zero tokens: when a subagent finishes,
-  appends one JSON line on how it spent the clock (seconds per tool category and per
-  doctrine phase — red, green, verification, lint, waiting; gaps past 10 minutes,
-  the machine asleep or offline, go to `idle` rather than model time) to
-  `~/.claude/doctrine-metrics/runs.jsonl`. Evidence for tuning the doctrine; read it
-  with `python3 hooks/subagent_timing.py summarise`. Set `DOCTRINE_METRICS_DIR` to log
-  elsewhere.
-  It stays on your machine: nothing is sent anywhere. Each line holds timings, tool
-  categories and the names of uncategorised tools (MCP tool names included), the agent
-  and model, the working directory and git branch; never code, prompts or command text.
-  `DOCTRINE_METRICS=0` turns it off.
-
 ## Repository profile (optional)
 
 The plugin stays generic; facts about one repository live in that repository. Copy
@@ -66,7 +54,7 @@ worktree reads the main checkout's `.local.md`, since the worktree has no copy o
   writing-plans and finishing-a-development-branch skills by name and does not replace
   them. Tested with superpowers 7.0.x; the version is not pinned, because superpowers'
   release tags do not follow the `superpowers--v<version>` form a pin needs.
-- `python3` on PATH (used by all three hooks).
+- `python3` on PATH (used by the guard and profile hooks).
 
 ## Install
 
@@ -78,7 +66,7 @@ claude plugin install delivery-doctrine@delivery-doctrine
 Verify after install (in a fresh session):
 - `/plugin` — delivery-doctrine listed and enabled (superpowers too).
 - `/context` — the doctrine text present; skills/agents listed under delivery-doctrine.
-- `/hooks` — the SessionStart, PreToolUse and SubagentStop hooks registered.
+- `/hooks` — the SessionStart and PreToolUse hooks registered.
 - Ask "what gear are we in?" — the session should answer from the doctrine.
 - On a scratch branch, try `git push --force` — the guard must refuse and point to
   `--force-with-lease`.
@@ -123,8 +111,6 @@ hook's blocklist as a brake. Do that only if you accept that risk.
 | `DOCTRINE_WIDE_TESTS=1` | off | prefix one command to allow a wide test run past the guard |
 | `DOCTRINE_KEEP_AWAKE=0` | on | stop the keep-awake hook (macOS) |
 | `DOCTRINE_LID_REMINDER=1` | off | daily reminder when system sleep is not disabled (macOS) |
-| `DOCTRINE_METRICS=0` | on | stop the timing hook |
-| `DOCTRINE_METRICS_DIR` | `~/.claude/doctrine-metrics` | where the timing log goes |
 
 Set them in the `env` block of `~/.claude/settings.json`.
 
@@ -148,28 +134,6 @@ thread resolved → next wave → close: full acceptance suite against the runni
 once live, close-out consolidates the slice files into plan.md, design.md and deferred.md, deletes them, and fact-checks and tightens the three docs.
 Low gear (`fast-path`) collapses the ceremony for spikes and small fixes without
 dropping test-first, one critic pass, or architecture fit.
-
-## Maintainer notes
-
-### Monthly review
-
-Once a month, review the doctrine against real use:
-1. **Harvest** — new learnings from the month, admitted only past the bar: cost real
-   time or correctness, non-obvious, recurs across projects. Prefer enforcing
-   (guard hook) over instructing.
-2. **Prune** — remove rules that never fired; keep the doctrine lean (DOCTRINE.md
-   ~100 lines, skills ~80).
-3. **Drift check** — Claude Code CLI changes (permissions schema, hooks, plugin
-   commands, model names) and stack changes (mockery, Go/Spring versions).
-4. **Ship** — bump version, push, update machines.
-
-### Migrating from loose ~/.claude skills
-
-If you previously ran these as user-level skills/agents, remove the loose copies after
-installing the plugin — otherwise both load and double-trigger:
-`~/.claude/skills/{grill-fast,grill-brownfield,thin-slice-planner,superpowers-seam,ddd-hexagonal-reviewer,fast-path,acceptance-testing,narration-cue-map,given-when-then-tests,execution-hygiene,gwt-testing,readable-java-style,code-quality,concurrency-review,security-audit,spring-boot,python-style,pytest-testing,go-style,go-testing}`,
-`~/.claude/agents/{implementer,critic,plan-critic}.md`, and the doctrine section of
-`~/.claude/CLAUDE.md` (the plugin injects it).
 
 ## License and credits
 

@@ -17,7 +17,7 @@ done
 pgrep -qf "caffeinate -ims -w $pid\$" || { nohup caffeinate -ims -w "$pid" > /dev/null 2>&1 & }
 
 if [ "${DOCTRINE_LID_REMINDER:-0}" = "1" ] && pmset -g | grep -q 'SleepDisabled[[:space:]]*0'; then
-    stamp="${DOCTRINE_METRICS_DIR:-$HOME/.claude/doctrine-metrics}/lid-reminder"
+    stamp="$HOME/.claude/delivery-doctrine/lid-reminder"
     if [ "$(cat "$stamp" 2>/dev/null)" != "$(date +%F)" ]; then
         mkdir -p "$(dirname "$stamp")" && date +%F > "$stamp"
         echo '{"systemMessage": "Kept awake while the lid is open. System sleep is not disabled: closing the lid will sleep the Mac mid-run."}'
