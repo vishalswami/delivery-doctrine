@@ -13,7 +13,6 @@ compose. Where they overlap, this file says who wins.
 ## Ownership
 - superpowers `subagent-driven-development` — implementer + spec/code-quality
   reviewer prompts, status handling.
-- superpowers `requesting-code-review` — critic dispatch (diff + template).
 - superpowers `writing-plans` — bite-sized TDD step format only.
 - doctrine `delivery-doctrine:grill-fast` — requirements grill.
 - doctrine `delivery-doctrine:test-first` — red-green-refactor inner loop, test structure.
@@ -22,6 +21,7 @@ compose. Where they overlap, this file says who wins.
 - doctrine — per-wave loop, Definition of Done, alignment gates, narration, model
   binding.
 - doctrine `delivery-doctrine:ddd-hexagonal-reviewer` — architecture + over-engineering check.
+- doctrine `critic` agent — the review (spec, quality, spec-gap) from a review package.
 
 ## Reconciliations
 1. **Gates override SDD continuous-execution.** SDD says "execute all tasks
@@ -37,9 +37,8 @@ compose. Where they overlap, this file says who wins.
 4. **The lead decides what to delegate.** Design decisions stay with the lead;
    mechanical slices go to the implementer subagent. Which slices, if any, the
    lead writes by hand is a runtime call, not fixed by this doctrine.
-5. **Adversarial spec-gap is a doctrine-added lens, not a fork.** The critic runs a
-   third lens (attack inputs the spec never named) layered on top of superpowers'
-   `requesting-code-review`, not replacing it.
+5. **Adversarial spec-gap is the critic's third lens.** After spec compliance and code
+   quality, the critic attacks the inputs the spec never named.
 6. **The doctrine binds the model, by task type.** SDD's per-role tiers
    (cheap/standard/capable) do not carry over; the orchestrator sets `model` on every
    dispatch per the doctrine's Implementer / critic roles.
@@ -62,8 +61,8 @@ Two modes — pick with the gear at Gate 0:
   commit red or breaking code. Message names the slice and its behavior precisely
   (e.g. "slice 3: reject expired JWT with 401"), never "wip".
 - Critic diffs: BASE_SHA = merge-base with main (waves never stack); one review per
-  push, covering commits since the last reviewed SHA. HEAD_SHA = current. Reuse
-  `superpowers:requesting-code-review` as-is.
+  push, covering commits since the last reviewed SHA. HEAD_SHA = current. The lead
+  writes the range to a file with `scripts/review-package` and passes its path.
 
 ## Per-wave loop
 1. **Start.** Every slice of the wave starts together, off current main: one implementer

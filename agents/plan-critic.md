@@ -21,10 +21,16 @@ fresh eyes: you did not write this plan and you do not defend it.
 - Waves: a false dependency (a slice that could run a wave earlier), or a hidden one
   between wave-mates — one needing the other's code, or both editing the same hot file
   (migration chain, wiring/registry, API spec or generated client, lockfile).
+- Interfaces: a name or signature one slice produces and another consumes is spelled the
+  same in both (`reserveSeat(id)` in one, `holdSeat(id)` in the other is a defect).
+  Wave-mates cannot see each other's code before merge; the plan is all they share.
+- Mandated defects: anything the plan requires that the critic would flag in code (a
+  test with no assertion, logic copied between slices). Cheaper to fix in the plan.
 
 ## Output
 - Misses: <behaviors/requirements with no slice>
 - Drift: <slices/behaviors that don't match the problem>
-- Waves: <false dependencies; collisions between wave-mates>
+- Waves: <false dependencies; collisions between wave-mates; interface mismatches>
+- Mandated defects: <plan requirements the critic would flag in code>
 - Verdict: Covered | Gaps found — one line.
 Report only. The planner folds your findings back into the wave plan before Gate 2.
