@@ -12,15 +12,16 @@ honor existing codebases), and language profiles for Java, Python, and Go.
   judgment, narration discipline, safe defaults.
 - **21 skills** — the method: `grill-fast` (greenfield), `grill-brownfield`,
   `thin-slice-planner` (waves of parallel PRs, + plan-critic gate), `superpowers-seam`,
-  `close-out` (once live: consolidate slice files into plan/design/deferred, delete them, fact-check and tighten the three),
+  `close-out` (once live: consolidate slice files into plan/design/deferred, delete them, fact-check and tighten the three, update each bounded context's context file),
   `ddd-hexagonal-reviewer`, `fast-path` (low gear), `acceptance-testing`,
   `given-when-then-tests`, `execution-hygiene`, `narration-cue-map`; plus language
   profiles — Java (`spring-boot`, `gwt-testing`, `readable-java-style`, `code-quality`,
   `concurrency-review`, `security-audit`), Python (`python-style`, `pytest-testing`),
   Go (`go-style`, `go-testing`).
-- **3 agents** — `implementer` (opus by default; mechanical work is dispatched on
-  sonnet), `critic` (opus, 3-lens review), `plan-critic` (opus, coverage/drift check
-  before code).
+- **3 agents** — `implementer` (opus by default, the deep tier unless remapped; mechanical
+  work is dispatched on the standard tier), `critic` (deep, 3-lens review), `plan-critic`
+  (deep, coverage/drift check before code). Tiers map to models in your profile; defaults
+  opus, sonnet, haiku.
 - **Guard hook** — PreToolUse block on destructive commands (`rm -rf`, `sudo`,
   `pkill`/`killall`, force-push in all its spellings — `--force-with-lease` stays
   allowed for rebasing a PR after a wave-mate merges, `git reset --hard`, `chmod 777`), plus the
@@ -39,8 +40,14 @@ honor existing codebases), and language profiles for Java, Python, and Go.
 The plugin stays generic; facts about one repository live in that repository. Copy
 `templates/delivery-doctrine.md` to `.claude/delivery-doctrine.md` (shared with the team)
 or `.claude/delivery-doctrine.local.md` (personal; gitignore it) and fill in what applies:
-spec folder layout, hot files wave-mates must not both edit, PR and merge rules, worktree
-setup and test isolation. The SessionStart hook injects it after the doctrine. Without
+spec folder layout, where domain instructions live, hot files wave-mates must not both
+edit, PR and merge rules, worktree setup and test isolation. The SessionStart hook injects
+it after the doctrine. A personal `~/.claude/delivery-doctrine.md` applies to every
+repository and is injected before the repository's; use it for the `## Models` section,
+which maps the doctrine's three tiers (deep, standard, fast; default opus, sonnet, haiku)
+to the models you have, and can go finer: a task kind (`mechanical: opus`) or a single
+agent (`critic: fable`). Values are model aliases; an agent entry beats a task kind, which
+beats a tier. Without
 one, agents discover and honor the house conventions themselves. The profile is injected
 verbatim, so it is trusted like the repository's CLAUDE.md. A session in a git
 worktree reads the main checkout's `.local.md`, since the worktree has no copy of it.

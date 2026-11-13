@@ -84,7 +84,7 @@ Two modes — pick with the gear at Gate 0:
    house rules (required checks, approvals; the repository profile names them) with every review thread resolved, human or
    bot. Enqueue (or merge) at once every PR the wave table puts no order on; a PR it
    orders is enqueued only once what it waits for has merged or its release check is done. Rebase a PR only when it actually conflicts (a mechanical
-   restack, sonnet); regenerate generated files, never hand-merge them.
+   restack, standard tier); regenerate generated files, never hand-merge them.
 5. **Next wave.** Starts only when every PR of the wave is merged; its slices branch off
    the new main together.
 6. **Blocked slice.** A slice that cannot be cleared inside its wave moves to the next

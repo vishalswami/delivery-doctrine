@@ -77,7 +77,10 @@ the acceptance tests. Wait for explicit approval. Batching the questions never
 removes this gate.
 
 ## Handoff
-On approval, invoke `delivery-doctrine:thin-slice-planner` with the requirements + acceptance tests
+On approval, a new bounded context gets its context file, written with the Gate 1
+documents at the package path the design names (the walking skeleton builds the package
+there): the canonical terms and domain shape just agreed, and the feature's line (in
+delivery). Shape: `delivery-doctrine:grill-brownfield`'s CONTEXT-FILE.md. Then invoke `delivery-doctrine:thin-slice-planner` with the requirements + acceptance tests
 to produce the walking-skeleton-first wave plan. Gate 2 (wave plan
 agreed before any code) belongs to the planner.
 

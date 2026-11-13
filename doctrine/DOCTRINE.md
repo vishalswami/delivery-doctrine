@@ -62,8 +62,9 @@ A slice is not done until its PR merges on the user's go-ahead at the wave gate.
 full critic loop for the one or two slices with real architectural weight; own-eyes or
 a light pass on the rest.
 - Once the user says the feature is live, close out: what the slice files hold that
-  plan.md, design.md and deferred.md lack moves there, the slice files are deleted, and
-  the three docs are fact-checked against the code, deduplicated and tightened.
+  plan.md, design.md and deferred.md lack moves there, the slice files are deleted, the
+  three docs are fact-checked against the code, deduplicated and tightened, and each
+  touched bounded context's context file (its AGENTS.md or CLAUDE.md) is updated.
   Depth: `delivery-doctrine:close-out`.
 - Critic loop is iteration-based, convergence-gated, and tiered by slice weight (hard
   cap 3 passes, 3 lenses); mechanics live in `critic.md` and `delivery-doctrine:superpowers-seam`.
@@ -94,19 +95,24 @@ implementer fixes; a few passes only where it earns it.
   replies and no permission re-asking, and runs a wave's slices one after another by
   choice. The critic is always a subagent.
 - Model: the orchestrator sets `model` on every dispatch; an agent config's default is
-  only the fallback (the implementer's is opus, so a dispatch that forgets gets the
-  safer choice). Grilling and orchestration run on the main session (opus).
+  only the fallback (the agent files say opus, so a dispatch that forgets gets the safer
+  choice; with a remapped tier or agent, set `model` on every dispatch). Grilling and orchestration run on the main session (deep tier).
+  Three tiers: deep = opus, standard = sonnet, fast = haiku. A profile's `## Models`
+  section can remap a tier, a task kind below (domain, review, mechanical, analysis,
+  retrieval) or an agent (implementer, critic, plan-critic), to a model alias (opus,
+  sonnet, haiku, fable). An agent entry covers every dispatch of that agent; otherwise
+  the task kind, then the tier.
 - **Domain code** (services, ports, policy, dispatch, consumer logic) **and every
-  review** (critic, plan-critic, any code review) → opus.
+  review** (critic, plan-critic, any code review) → deep.
 - **Mechanical code** — migrations, regenerated API/client code, wiring (e.g. main.go),
   a table test over declared constants, rebasing or restacking branches (rebase, regenerate,
   force-with-lease) — **and any analysis**, including analysis
-  built on retrieval → sonnet. Scanning open PRs for overlap is analysis: the verdict
+  built on retrieval → standard. Scanning open PRs for overlap is analysis: the verdict
   is a judgement.
 - **Retrieval only** — grep, find a file, read code or a document, fetch a page, pull a
-  log line; information reported, no judgement → haiku.
-- A task mixing domain and mechanical code is split: an opus implementer for the
-  domain part, a sonnet dispatch for the mechanical part.
+  log line; information reported, no judgement → fast.
+- A task mixing domain and mechanical code is split: a deep implementer for the
+  domain part, a standard dispatch for the mechanical part.
 
 ## Architecture judgment
 Right-size architecture to the problem, and say so out loud when you keep

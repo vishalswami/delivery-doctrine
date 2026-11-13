@@ -57,13 +57,21 @@ If a `CONTEXT-MAP.md` exists at the root, the repo has multiple contexts. The ma
 │       └── docs/adr/
 ```
 
-Create files lazily — only when you have something to write. If no `CONTEXT.md` exists, create one when the first term is resolved. If no `docs/adr/` exists, create it when the first ADR is needed.
+### Context files
+
+Each bounded context has one context file at its package root, in the shape in [CONTEXT-FILE.md](./CONTEXT-FILE.md). It is that context's glossary home: its Domain terms section replaces CONTEXT.md, and a CONTEXT-MAP.md entry may point at it. For every bounded context the plan touches:
+- **Missing:** draft it from the code and this grill, with the feature's line (in delivery), and create it with the Gate 1 documents.
+- **Present but not in shape:** show the gaps and propose the correction, including the feature's line (in delivery); change it only on the user's explicit yes, since other teams may own it.
+- **Several files for one context** (nested in subpackages, or spread across folders): one context file at the context's root owns terms, invariants and boundaries; a nested file keeps only mechanics local to its folder (commands, traps) and needs no pointer; a satellite folder outside the package gets at most a one-line pointer to the context file. Propose the consolidation as its own docs PR, applied only on the user's yes. Before moving any text, search the repository for hooks, tests or scripts that read those files. If the duplication comes from the context being drawn wrong, raise that as a modelling finding (an ADR candidate); merging files does not fix it.
+- **Present and in shape:** leave it. Terms resolved here go into the spec's design.md; close-out folds them in, and the feature appears there once it is live. Close-out is the only step that edits an existing context file without asking.
+
+Create files lazily — only when you have something to write. A repository that already keeps its glossary in `CONTEXT.md` files keeps using them (the repository profile can say so); everywhere else the context file is the glossary. If no `docs/adr/` exists, create it when the first ADR is needed.
 
 ## During the session
 
 ### Challenge against the glossary
 
-When the user uses a term that conflicts with the existing language in `CONTEXT.md`, call it out immediately. "Your glossary defines 'cancellation' as X, but you seem to mean Y — which is it?"
+When the user uses a term that conflicts with the existing language in the glossary (`CONTEXT.md` or the context file's Domain terms), call it out immediately. "Your glossary defines 'cancellation' as X, but you seem to mean Y — which is it?"
 
 ### Sharpen fuzzy language
 
@@ -100,9 +108,9 @@ For any API, key, or identifier about to become public, ask: what does the calle
 
 When the user states how something works, check whether the code agrees. If you find a contradiction, surface it: "Your code cancels entire Orders, but you just said partial cancellation is possible — which is right?"
 
-### Update CONTEXT.md inline
+### Update the glossary inline
 
-When a term is resolved, update `CONTEXT.md` right there. Don't batch these up — capture them as they happen. Use the format in [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md).
+When a term is resolved, update the glossary right there: `CONTEXT.md`, or a context file created in this session (an existing context file waits for close-out; record the term in design.md). Don't batch these up — capture them as they happen. Use the format in [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md).
 
 `CONTEXT.md` should be totally devoid of implementation details. Do not treat `CONTEXT.md` as a spec, a scratch pad, or a repository for implementation decisions. It is a glossary and nothing else.
 

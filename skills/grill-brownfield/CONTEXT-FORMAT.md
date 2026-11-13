@@ -36,7 +36,7 @@ _Avoid_: Client, buyer, account
 
 ## Single vs multi-context repos
 
-**Single context (most repos):** One `CONTEXT.md` at the repo root.
+**Single context (most repos):** The glossary is the Domain terms section of the context's context file (see [CONTEXT-FILE.md](./CONTEXT-FILE.md)); a `CONTEXT.md` at the repo root only where the repository already keeps one.
 
 **Multiple contexts:** A `CONTEXT-MAP.md` at the repo root lists the contexts, where they live, and how they relate to each other:
 
@@ -48,6 +48,7 @@ _Avoid_: Client, buyer, account
 - [Ordering](./src/ordering/CONTEXT.md) — receives and tracks customer orders
 - [Billing](./src/billing/CONTEXT.md) — generates invoices and processes payments
 - [Fulfillment](./src/fulfillment/CONTEXT.md) — manages warehouse picking and shipping
+- [Payments](./src/payments/AGENTS.md) — a context file whose Domain terms are its glossary
 
 ## Relationships
 
