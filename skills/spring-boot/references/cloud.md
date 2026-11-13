@@ -1,9 +1,12 @@
+<!-- Adapted from piomin/claude-ai-spring-boot (Apache-2.0); modified for delivery-doctrine. See THIRD_PARTY_NOTICES.md. -->
+
 # Cloud Native - Spring Cloud
 
 ## Spring Cloud Config Server
 
+**Config Server**
+
 ```java
-// Config Server
 @SpringBootApplication
 @EnableConfigServer
 public class ConfigServerApplication {
@@ -11,8 +14,11 @@ public class ConfigServerApplication {
         SpringApplication.run(ConfigServerApplication.class, args);
     }
 }
+```
 
-// application.yml
+**application.yml**
+
+```yaml
 server:
   port: 8888
 
@@ -32,16 +38,22 @@ spring:
     user:
       name: config-user
       password: ${CONFIG_PASSWORD}
+```
 
-// Config Client
+**Config Client**
+
+```java
 @SpringBootApplication
 public class ClientApplication {
     public static void main(String[] args) {
         SpringApplication.run(ClientApplication.class, args);
     }
 }
+```
 
-// application.yml (Config Client)
+**application.yml (Config Client)**
+
+```yaml
 spring:
   application:
     name: user-service
@@ -77,15 +89,15 @@ public class ConfigController {
         );
     }
 }
-
-// Refresh configuration via Actuator endpoint:
-// POST /actuator/refresh
 ```
+
+Refresh configuration with `POST /actuator/refresh` on the Actuator endpoint.
 
 ## Service Discovery - Eureka
 
+**Eureka Server**
+
 ```java
-// Eureka Server
 @SpringBootApplication
 @EnableEurekaServer
 public class EurekaServerApplication {
@@ -93,8 +105,11 @@ public class EurekaServerApplication {
         SpringApplication.run(EurekaServerApplication.class, args);
     }
 }
+```
 
-// application.yml (Eureka Server)
+**application.yml (Eureka Server)**
+
+```yaml
 server:
   port: 8761
 
@@ -106,8 +121,11 @@ eureka:
     fetch-registry: false
     service-url:
       defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+```
 
-// Eureka Client
+**Eureka Client**
+
+```java
 @SpringBootApplication
 @EnableDiscoveryClient
 public class UserServiceApplication {
@@ -115,8 +133,11 @@ public class UserServiceApplication {
         SpringApplication.run(UserServiceApplication.class, args);
     }
 }
+```
 
-// application.yml (Eureka Client)
+**application.yml (Eureka Client)**
+
+```yaml
 spring:
   application:
     name: user-service
@@ -176,7 +197,7 @@ public class GatewayApplication {
 
     @Bean
     public RedisRateLimiter redisRateLimiter() {
-        return new RedisRateLimiter(10, 20); // replenishRate, burstCapacity
+        return new RedisRateLimiter(10, 20);
     }
 
     @Bean
@@ -186,59 +207,72 @@ public class GatewayApplication {
         );
     }
 }
+```
 
-// application.yml (Gateway)
+**application.yml (Gateway)**
+
+```yaml
 spring:
   cloud:
     gateway:
-      discovery:
-        locator:
-          enabled: true
-          lower-case-service-id: true
-      default-filters:
-        - DedupeResponseHeader=Access-Control-Allow-Origin
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowed-origins: "*"
-            allowed-methods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-            allowed-headers: "*"
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+          default-filters:
+            - DedupeResponseHeader=Access-Control-Allow-Origin
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowed-origins: "*"
+                allowed-methods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                allowed-headers: "*"
 ```
+
+With Spring Boot 4 use Spring Cloud 2025.1.x (Gateway 5.0): the reactive gateway starter is `spring-cloud-starter-gateway-server-webflux`, and its properties live under `spring.cloud.gateway.server.webflux.*` rather than the older `spring.cloud.gateway.*` form.
 
 ## Circuit Breaker - Resilience4j
 
 ```java
 @Service
 public class ExternalApiService {
-    private final WebClient webClient;
+    private static final Logger log = LoggerFactory.getLogger(ExternalApiService.class);
 
-    public ExternalApiService(WebClient webClient) {
-        this.webClient = webClient;
+    private final RestClient restClient;
+
+    public ExternalApiService(RestClient.Builder builder) {
+        this.restClient = builder
+            .baseUrl("https://api.external.com")
+            .build();
     }
 
     @CircuitBreaker(name = "externalApi", fallbackMethod = "getFallbackData")
     @Retry(name = "externalApi")
     @RateLimiter(name = "externalApi")
-    public Mono<ExternalData> getData(String id) {
-        return webClient
+    public ExternalData getData(String id) {
+        return restClient
             .get()
             .uri("/data/{id}", id)
             .retrieve()
-            .bodyToMono(ExternalData.class)
-            .timeout(Duration.ofSeconds(3));
+            .body(ExternalData.class);
     }
 
-    private Mono<ExternalData> getFallbackData(String id, Exception e) {
+    private ExternalData getFallbackData(String id, Exception e) {
         log.warn("Fallback triggered for id: {}, error: {}", id, e.getMessage());
-        return Mono.just(new ExternalData(id, "Fallback data", LocalDateTime.now()));
+        return new ExternalData(id, "Fallback data", LocalDateTime.now());
     }
 }
+```
 
-// application.yml
+**application.yml**
+
+```yaml
 resilience4j:
   circuitbreaker:
     instances:
@@ -270,21 +304,27 @@ resilience4j:
 
 ## Distributed Tracing - Micrometer Tracing
 
-```java
-// application.yml
+Spring Boot 4: OTLP export comes from `spring-boot-starter-opentelemetry` (endpoint `management.opentelemetry.tracing.export.otlp.endpoint`); Zipkin export is configured under `management.tracing.export.zipkin.*`, and `management.tracing.enabled` is now `management.tracing.export.enabled`.
+
+**application.yml**
+
+```yaml
 management:
   tracing:
     sampling:
       probability: 1.0
-  zipkin:
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans
+    export:
+      zipkin:
+        endpoint: http://localhost:9411/api/v2/spans
 
 logging:
   pattern:
     level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+```
 
-// Custom spans
+**Custom spans**
+
+```java
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -297,7 +337,6 @@ public class OrderService {
             span.tag("order.type", request.type());
             span.tag("order.items", String.valueOf(request.items().size()));
 
-            // Business logic
             Order order = createOrder(request);
 
             span.event("order.created");
@@ -331,27 +370,39 @@ public class UserServiceLoadBalancerConfig {
     }
 }
 
+@Configuration
+public class UserClientConfig {
+
+    @Bean
+    @LoadBalanced
+    public RestClient.Builder loadBalancedRestClientBuilder() {
+        return RestClient.builder();
+    }
+}
+
 @Service
 public class UserClientService {
-    private final WebClient.Builder webClientBuilder;
+    private final RestClient restClient;
 
-    public UserClientService(WebClient.Builder webClientBuilder) {
-        this.webClientBuilder = webClientBuilder;
+    public UserClientService(RestClient.Builder loadBalancedRestClientBuilder) {
+        this.restClient = loadBalancedRestClientBuilder
+            .baseUrl("http://user-service")
+            .build();
     }
 
-    public Mono<User> getUser(Long id) {
-        return webClientBuilder
-            .baseUrl("http://user-service")
-            .build()
+    public User getUser(Long id) {
+        return restClient
             .get()
             .uri("/users/{id}", id)
             .retrieve()
-            .bodyToMono(User.class);
+            .body(User.class);
     }
 }
 ```
 
 ## Health Checks & Actuator
+
+In Spring Boot 4, `HealthIndicator` and `Health` are in `org.springframework.boot.health.contributor`. Prometheus export needs `io.micrometer:micrometer-registry-prometheus` and is on by default (`management.prometheus.metrics.export.enabled`).
 
 ```java
 @Component
@@ -375,12 +426,14 @@ public class CustomHealthIndicator implements HealthIndicator {
     }
 
     private boolean checkExternalService() {
-        // Check external dependency
         return true;
     }
 }
+```
 
-// application.yml
+**application.yml**
+
+```yaml
 management:
   endpoints:
     web:
@@ -397,17 +450,15 @@ management:
     readinessState:
       enabled: true
   metrics:
-    export:
-      prometheus:
-        enabled: true
     tags:
       application: ${spring.application.name}
 ```
 
 ## Kubernetes Deployment
 
+**deployment.yaml**
+
 ```yaml
-# deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -467,9 +518,10 @@ spec:
 
 ## Docker Configuration
 
+Multi-stage **Dockerfile**
+
 ```dockerfile
-# Dockerfile (Multi-stage)
-FROM eclipse-temurin:17-jdk-alpine AS build
+FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /workspace/app
 
 COPY mvnw .
@@ -480,7 +532,7 @@ COPY src src
 RUN ./mvnw install -DskipTests
 RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
 
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 VOLUME /tmp
 ARG DEPENDENCY=/workspace/app/target/dependency
 COPY --from=build ${DEPENDENCY}/BOOT-INF/lib /app/lib

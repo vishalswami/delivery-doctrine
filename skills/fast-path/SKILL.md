@@ -37,7 +37,7 @@ CLAUDE.md's execution rule).
    when running tests or any long command.
 
 ## What low gear drops (vs full gear)
-- The formal slice list and MVP/deferrals ceremony (`delivery-doctrine:thin-slice-planner` emits just the
+- The wave plan and MVP/deferrals ceremony (`delivery-doctrine:thin-slice-planner` emits just the
   walking skeleton).
 - The iterate-to-cap critic loop (one pass only).
 - The accumulated acceptance suite and per-commit linting / static analysis (solo mode;

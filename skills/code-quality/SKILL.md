@@ -3,6 +3,8 @@ name: code-quality
 description: Comprehensive code review for Java - clean code principles, API contracts, null safety, exception handling, and performance. Use when user says "review code", "refactor", "check API", or before merging changes.
 ---
 
+<!-- Adapted from piomin/claude-ai-spring-boot (Apache-2.0); modified for delivery-doctrine. See THIRD_PARTY_NOTICES.md. -->
+
 # Code Quality Review Skill
 
 Systematic code review combining clean code principles, API design, and Java best practices.

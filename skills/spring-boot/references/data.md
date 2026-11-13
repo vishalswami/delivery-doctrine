@@ -1,4 +1,8 @@
+<!-- Adapted from piomin/claude-ai-spring-boot (Apache-2.0); modified for delivery-doctrine. See THIRD_PARTY_NOTICES.md. -->
+
 # Data Access - Spring Data JPA
+
+Spring Boot 4 ships Spring Data 2025.1 (Spring Data JPA 4) on Hibernate 7 and Jakarta Persistence 3.2. `@EntityScan` moved to `org.springframework.boot.persistence.autoconfigure.EntityScan`, `hibernate-jpamodelgen` is replaced by `hibernate-processor`, and `spring.dao.exceptiontranslation.enabled` is now `spring.persistence.exceptiontranslation.enabled`.
 
 ## JPA Entity Pattern
 
@@ -49,7 +53,6 @@ public class User {
     @Version
     private Long version;
 
-    // Constructors
     public User() {}
 
     public User(Long id, String email, String password, String username, Boolean active,
@@ -67,7 +70,6 @@ public class User {
         this.version = version;
     }
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -98,7 +100,6 @@ public class User {
     public Long getVersion() { return version; }
     public void setVersion(Long version) { this.version = version; }
 
-    // Helper methods for bidirectional relationships
     public void addAddress(Address address) {
         addresses.add(address);
         address.setUser(this);
@@ -136,7 +137,6 @@ public interface UserRepository extends JpaRepository<User, Long>,
     @Query("UPDATE User u SET u.active = false WHERE u.lastLoginAt < :threshold")
     int deactivateInactiveUsers(@Param("threshold") LocalDateTime threshold);
 
-    // Projection for read-only DTOs
     @Query("SELECT new com.example.dto.UserSummary(u.id, u.username, u.email) " +
            "FROM User u WHERE u.active = true")
     List<UserSummary> findAllActiveSummaries();
@@ -169,8 +169,11 @@ public class UserSpecifications {
         };
     }
 }
+```
 
-// Usage in service
+**Usage in service**
+
+```java
 @Service
 public class UserService {
     private final UserRepository userRepository;
@@ -190,7 +193,11 @@ public class UserService {
 }
 ```
 
+Since Spring Data JPA 4, `Specification.where(...)` rejects `null`: start from `Specification.unrestricted()` or combine with `Specification.allOf(...)` when the first criterion may be absent. A specification whose predicate is `null` (as in `hasEmail(null)`) is still allowed.
+
 ## Transaction Management
+
+`createOrder` runs all its operations in a single transaction and rethrows `PaymentException` so the transaction rolls back. `logOrderEvent` uses a separate transaction (`REQUIRES_NEW`), so it commits even if the parent rolls back. `completeOrder` does not roll back if the notification fails (`noRollbackFor`).
 
 ```java
 @Service
@@ -210,7 +217,6 @@ public class OrderService {
     
     @Transactional
     public Order createOrder(OrderCreateRequest request) {
-        // All operations in single transaction
         Order order = Order.builder()
             .customerId(request.customerId())
             .status(OrderStatus.PENDING)
@@ -228,7 +234,7 @@ public class OrderService {
             order.setStatus(OrderStatus.PAID);
         } catch (PaymentException e) {
             order.setStatus(OrderStatus.PAYMENT_FAILED);
-            throw e; // Transaction will rollback
+            throw e;
         }
 
         return orderRepository.save(order);
@@ -236,7 +242,6 @@ public class OrderService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logOrderEvent(Long orderId, String event) {
-        // Separate transaction - will commit even if parent rolls back
         OrderEvent orderEvent = new OrderEvent(orderId, event);
         orderEventRepository.save(orderEvent);
     }
@@ -249,7 +254,6 @@ public class OrderService {
         order.setStatus(OrderStatus.COMPLETED);
         orderRepository.save(order);
 
-        // Won't rollback transaction if notification fails
         try {
             notificationService.sendCompletionEmail(order);
         } catch (NotificationException e) {
@@ -307,8 +311,9 @@ public abstract class AuditableEntity {
 
 ## Projections
 
+**Interface-based projection**
+
 ```java
-// Interface-based projection
 public interface UserSummary {
     Long getId();
     String getUsername();
@@ -317,27 +322,38 @@ public interface UserSummary {
     @Value("#{target.firstName + ' ' + target.lastName}")
     String getFullName();
 }
+```
 
-// Class-based projection (DTO)
+**Class-based projection (DTO)**
+
+```java
 public record UserSummaryDto(
     Long id,
     String username,
     String email
 ) {}
+```
 
-// Usage
+**Usage**
+
+```java
 public interface UserRepository extends JpaRepository<User, Long> {
     List<UserSummary> findAllBy();
 
     <T> List<T> findAllBy(Class<T> type);
 }
+```
 
-// Service usage
+**Service usage**
+
+```java
 List<UserSummary> summaries = userRepository.findAllBy();
 List<UserSummaryDto> dtos = userRepository.findAllBy(UserSummaryDto.class);
 ```
 
 ## Query Optimization
+
+`JOIN FETCH` solves the N+1 problem, `@BatchSize` enables batch fetching, `@EntityGraph` fetches associations dynamically, `Pageable` avoids loading all data, and a native query handles the complex case.
 
 ```java
 @Service
@@ -347,28 +363,23 @@ public class UserQueryService {
     private final UserRepository userRepository;
     private final EntityManager entityManager;
 
-    // N+1 problem solved with JOIN FETCH
     @Query("SELECT DISTINCT u FROM User u " +
            "LEFT JOIN FETCH u.addresses " +
            "LEFT JOIN FETCH u.roles " +
            "WHERE u.active = true")
     List<User> findAllActiveWithAssociations();
 
-    // Batch fetching
     @BatchSize(size = 25)
     @OneToMany(mappedBy = "user")
     private List<Order> orders;
 
-    // EntityGraph for dynamic fetching
     @EntityGraph(attributePaths = {"addresses", "roles"})
     List<User> findAllByActiveTrue();
 
-    // Pagination to avoid loading all data
     public Page<User> findAllUsers(Pageable pageable) {
         return userRepository.findAll(pageable);
     }
 
-    // Native query for complex queries
     @Query(value = """
         SELECT u.* FROM users u
         INNER JOIN orders o ON u.id = o.user_id
@@ -383,8 +394,10 @@ public class UserQueryService {
 
 ## Database Migrations (Flyway)
 
+In Spring Boot 4, Flyway auto-configuration needs `spring-boot-starter-flyway` (plus the database module, e.g. `flyway-database-postgresql`); `flyway-core` alone no longer triggers it.
+
+**V1__create_users_table.sql**
 ```sql
--- V1__create_users_table.sql
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
     email VARCHAR(100) NOT NULL UNIQUE,
@@ -399,8 +412,10 @@ CREATE TABLE users (
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_active ON users(active);
+```
 
--- V2__create_addresses_table.sql
+**V2__create_addresses_table.sql**
+```sql
 CREATE TABLE addresses (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

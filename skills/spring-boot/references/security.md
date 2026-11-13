@@ -1,4 +1,8 @@
-# Security - Spring Security 6
+<!-- Adapted from piomin/claude-ai-spring-boot (Apache-2.0); modified for delivery-doctrine. See THIRD_PARTY_NOTICES.md. -->
+
+# Security - Spring Security 7
+
+Spring Boot 4 ships Spring Security 7: the lambda DSL is required (no `.and()` chaining; custom DSLs use `http.with(...)` instead of `apply(...)`), and the OAuth2 starters are `spring-boot-starter-security-oauth2-resource-server` / `-client` / `-authorization-server` (Spring Authorization Server is now part of Spring Security).
 
 ## Security Configuration
 
@@ -78,7 +82,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
-            @NonNull HttpServletRequest response,
+            @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
@@ -171,11 +175,11 @@ public class JwtService {
             long expiration) {
         return Jwts
             .builder()
-            .setClaims(extraClaims)
-            .setSubject(userDetails.getUsername())
-            .setIssuedAt(new Date(System.currentTimeMillis()))
-            .setExpiration(new Date(System.currentTimeMillis() + expiration))
-            .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+            .claims(extraClaims)
+            .subject(userDetails.getUsername())
+            .issuedAt(new Date(System.currentTimeMillis()))
+            .expiration(new Date(System.currentTimeMillis() + expiration))
+            .signWith(getSignInKey())
             .compact();
     }
 
@@ -194,14 +198,14 @@ public class JwtService {
 
     private Claims extractAllClaims(String token) {
         return Jwts
-            .parserBuilder()
-            .setSigningKey(getSignInKey())
+            .parser()
+            .verifyWith(getSignInKey())
             .build()
-            .parseClaimsJws(token)
-            .getBody();
+            .parseSignedClaims(token)
+            .getPayload();
     }
 
-    private Key getSignInKey() {
+    private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
@@ -397,7 +401,6 @@ public class UserService {
     @PostAuthorize("returnObject.email == authentication.principal.username")
     public User updateProfile(Long userId, UserUpdateRequest request) {
         User user = getUserById(userId);
-        // Update logic
         return userRepository.save(user);
     }
 

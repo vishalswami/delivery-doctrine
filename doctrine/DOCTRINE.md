@@ -13,8 +13,8 @@ everything to the problem.
 ## Gears (pick first — Gate 0)
 Before anything else, choose the gear and name it out loud; it selects the skills and
 the Definition of Done.
-- **Full gear** (anything real): grill-fast → thin-slice-planner → per-slice
-  implementer/critic loop with all gates.
+- **Full gear** (anything real): grill-fast → thin-slice-planner (waves) → per-wave
+  parallel implementer/critic loop with all gates → close-out once live.
 - **Low gear** (spikes, throwaways, small tasks, bugfixes; clock beats architecture):
   grill (scope-appropriate) → walking skeleton test-first → one critic pass → own eyes
   → run → commit. Reduced ceremony, never reduced correctness. See `delivery-doctrine:fast-path`.
@@ -25,6 +25,8 @@ rebuilt, not promoted in place.
 Safe defaults when unstated: no gear named → full gear; architecture unclear → honor the
 existing codebase; a shared/house repo → team commit mode, no remote → solo (see
 `delivery-doctrine:superpowers-seam`).
+House facts (spec folder, hot files, PR and merge rules, worktree setup) come from the
+repository profile when one is injected below; otherwise discover and honor them.
 
 ## Alignment gates (hard rule)
 Stop and confirm. Never race ahead.
@@ -33,8 +35,10 @@ Stop and confirm. Never race ahead.
 - Never infer agreement from a partial, ambiguous, or silent answer. If unsure,
   ask "approved to proceed?" and wait. Anything short of an explicit yes is
   not-yet-approved.
-- The gates: (1) requirements agreed after the grill, (2) full slice list agreed
-  before any code, (3) each slice green and reviewed before the next starts.
+- The gates: (1) requirements agreed after the grill, (2) the wave plan agreed before
+  any code, (3) per wave: every PR of the wave open and critic-clean, shown to the user
+  together; on their go-ahead, each merges once mergeable under the house rules with every
+  review thread resolved. The next wave starts only when the whole wave is on main.
 - Batching questions is allowed only while gathering initial requirements. It
   never removes a gate.
 
@@ -44,6 +48,8 @@ domain, out-adapter); it usually owns several acceptance behaviors, all green. N
 horizontal layers.
 - Slice 0 is the walking skeleton: thinnest end-to-end path wired and passing
   before any feature.
+- Slices run in waves of parallel PRs, as few waves as possible; each stays narrow so
+  its PR stays easy to review.
 - Just-in-time within a slice: touch all layers, build only what the slice needs.
   No speculative ports, repositories, or entities.
 - State conventions (error handling, validation) up front; implement per slice.
@@ -51,9 +57,14 @@ horizontal layers.
 
 ## Per-slice loop + Definition of Done
 Red test, implementer to green, manual review, critic pass on architecturally
-meaningful slices only, app starts if wiring changed, integration test green, explicit
-sign-off. A slice is not done until I say so. Reserve the full critic loop for the one
-or two slices with real architectural weight; own-eyes or a light pass on the rest.
+meaningful slices only, app starts if wiring changed, integration test green, PR open.
+A slice is not done until its PR merges on the user's go-ahead at the wave gate. Reserve the
+full critic loop for the one or two slices with real architectural weight; own-eyes or
+a light pass on the rest.
+- Once the user says the feature is live, close out: what the slice files hold that
+  plan.md, design.md and deferred.md lack moves there, the slice files are deleted, and
+  the three docs are fact-checked against the code, deduplicated and tightened.
+  Depth: `delivery-doctrine:close-out`.
 - Critic loop is iteration-based, convergence-gated, and tiered by slice weight (hard
   cap 3 passes, 3 lenses); mechanics live in `critic.md` and `delivery-doctrine:superpowers-seam`.
 - Every local check is scoped to what the slice touched: its tests by name or pattern,
@@ -80,14 +91,15 @@ implementer fixes; a few passes only where it earns it.
   your review comments in its final report, since subagent replies aren't visible
   mid-run). Run the implementer inline in the main session when the scope is small
   (low gear) or the session is live/presented (demo, interview) — inline gives visible
-  replies and no permission re-asking. The critic is always a subagent.
+  replies and no permission re-asking, and runs a wave's slices one after another by
+  choice. The critic is always a subagent.
 - Model: the orchestrator sets `model` on every dispatch; an agent config's default is
   only the fallback (the implementer's is opus, so a dispatch that forgets gets the
   safer choice). Grilling and orchestration run on the main session (opus).
 - **Domain code** (services, ports, policy, dispatch, consumer logic) **and every
   review** (critic, plan-critic, any code review) → opus.
 - **Mechanical code** — migrations, regenerated API/client code, wiring (e.g. main.go),
-  a table test over declared constants, restacking stacked branches (rebase, regenerate,
+  a table test over declared constants, rebasing or restacking branches (rebase, regenerate,
   force-with-lease) — **and any analysis**, including analysis
   built on retrieval → sonnet. Scanning open PRs for overlap is analysis: the verdict
   is a judgement.

@@ -1,3 +1,5 @@
+<!-- Adapted from mattpocock/skills (MIT); modified for delivery-doctrine. See THIRD_PARTY_NOTICES.md. -->
+
 # ADR Format
 
 ADRs live in `docs/adr/` and use sequential numbering: `0001-slug.md`, `0002-slug.md`, etc.

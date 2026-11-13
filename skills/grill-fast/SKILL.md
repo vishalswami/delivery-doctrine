@@ -78,7 +78,7 @@ removes this gate.
 
 ## Handoff
 On approval, invoke `delivery-doctrine:thin-slice-planner` with the requirements + acceptance tests
-to produce the ordered, walking-skeleton-first slice list. Gate 2 (slice list
+to produce the walking-skeleton-first wave plan. Gate 2 (wave plan
 agreed before any code) belongs to the planner.
 
 ## Reuse

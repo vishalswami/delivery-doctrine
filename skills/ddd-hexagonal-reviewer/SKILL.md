@@ -49,7 +49,7 @@ a greenfield throwaway with no architecture to honor.
   why: "port here because it's a real boundary; plain here because it doesn't earn it."
 
 ## Output
-Feed findings into the critic's report (Strengths / Issues by severity). Architecture
+Feed findings into the critic's report, ranked by severity. Architecture
 issues are usually Important, unless they break a boundary the domain depends on, which
 is Critical.
 

@@ -1,6 +1,6 @@
 ---
 name: spring-boot
-description: Spring Boot 3.x development - REST APIs, JPA, Security, Testing, and Cloud-native patterns. Use for building enterprise Java applications with Spring Boot.
+description: Spring Boot 4.x development - REST APIs, JPA, Security, Testing, and Cloud-native patterns. Use for building enterprise Java applications with Spring Boot.
 metadata:
   version: "2.0.0"
   domain: backend
@@ -10,9 +10,11 @@ metadata:
   output-format: code
 ---
 
+<!-- Adapted from piomin/claude-ai-spring-boot (Apache-2.0); modified for delivery-doctrine. See THIRD_PARTY_NOTICES.md. -->
+
 # Spring Boot Skill
 
-Enterprise Spring Boot 3.x development with focus on clean architecture and production-ready code.
+Enterprise Spring Boot 4.x development with focus on clean architecture and production-ready code.
 
 ## Core Workflow
 
@@ -165,9 +167,9 @@ Load detailed patterns based on context:
 |-------|-----------|-------------|
 | Web/REST | `references/web.md` | Controllers, validation, exception handling |
 | Data Access | `references/data.md` | JPA, repositories, transactions, queries |
-| Security | `references/security.md` | Spring Security 6, OAuth2, JWT, auth |
+| Security | `references/security.md` | Spring Security 7, OAuth2, JWT, auth |
 | Cloud/Config | `references/cloud.md` | Config server, discovery, resilience |
-| Testing | `references/testing.md` | Unit, integration, slice tests |
+| Testing | `references/testing.md` | Unit, integration, slice tests, Testcontainers `@ServiceConnection` |
 
 ## Constraints
 
@@ -188,8 +190,19 @@ Load detailed patterns based on context:
 - Skip input validation on endpoints
 - Mix blocking and reactive code
 - Store secrets in application.properties
-- Use deprecated Spring Boot 2.x patterns
+- Use deprecated Spring Boot 2.x/3.x patterns
 - Hardcode URLs, credentials, environment values
+
+### Spring Boot 4 Notes
+- Baseline: Java 17+ (21 or 25 LTS recommended), Spring Framework 7, Jakarta EE 11 (Servlet 6.1), Spring Security 7, Spring Data 2025.1, Hibernate 7, JUnit Jupiter 6, Testcontainers 2
+- Jackson 3 is the default: packages and group IDs move from `com.fasterxml.jackson` to `tools.jackson` (annotations stay in `com.fasterxml.jackson.annotation`); `@JsonComponent` is `@JacksonComponent`, `Jackson2ObjectMapperBuilderCustomizer` is `JsonMapperBuilderCustomizer`; to replace the mapper, define a `JsonMapper` bean
+- Modular starters: `spring-boot-starter-web` is `spring-boot-starter-webmvc`, `spring-boot-starter-oauth2-*` is `spring-boot-starter-security-oauth2-*`, `spring-boot-starter-aop` is `spring-boot-starter-aspectj`; Flyway and Liquibase need `spring-boot-starter-flyway` / `spring-boot-starter-liquibase`
+- Test slices live in per-technology modules and packages: `@WebMvcTest` in `org.springframework.boot.webmvc.test.autoconfigure` (`spring-boot-webmvc-test`), `@DataJpaTest` in `org.springframework.boot.data.jpa.test.autoconfigure` (`spring-boot-data-jpa-test`), `@WebFluxTest` in `org.springframework.boot.webflux.test.autoconfigure`
+- `@MockBean`/`@SpyBean` are removed: use `@MockitoBean`/`@MockitoSpyBean` on test-class fields (not in `@Configuration` classes)
+- `@SpringBootTest` no longer provides `MockMvc`, `TestRestTemplate` or `WebTestClient` on its own: add `@AutoConfigureMockMvc`, `@AutoConfigureRestTestClient` (preferred, `RestTestClient`) or `@AutoConfigureTestRestTemplate`; for `WebTestClient`, `@AutoConfigureWebTestClient` (from `spring-boot-webflux-test`)
+- `@EntityScan` is `org.springframework.boot.persistence.autoconfigure.EntityScan`; Actuator's `HealthIndicator`/`Health` are in `org.springframework.boot.health.contributor`
+- Undertow is removed; Spring Retry is no longer version-managed
+- Spring Cloud release train for Boot 4 is 2025.1.x (Oakwood)
 
 ## Stack right-sizing
 Plain Java (a `main` + packages, JUnit, Maven) for CLI/batch/take-home tools — don't pay
@@ -289,4 +302,4 @@ public class SecurityConfig {
 
 ## Knowledge Base
 
-Spring Boot 3.x, Java 21, Spring WebFlux, Project Reactor, Spring Data JPA, Spring Security 6, OAuth2/JWT, Hibernate, R2DBC, Spring Cloud, Resilience4j, Micrometer, JUnit 5, TestContainers, Mockito, Maven/Gradle
+Spring Boot 4.x, Java 21+ (17 minimum), Spring Framework 7, Spring WebFlux, Project Reactor, Spring Data JPA, Spring Security 7, OAuth2/JWT, Hibernate 7, Jackson 3, R2DBC, Spring Cloud 2025.1, Resilience4j, Micrometer, JUnit 6, Testcontainers 2, Mockito, Maven/Gradle

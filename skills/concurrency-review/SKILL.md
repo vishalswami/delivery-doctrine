@@ -3,6 +3,8 @@ name: concurrency-review
 description: Review Java concurrency code for thread safety, race conditions, deadlocks, and modern patterns (Virtual Threads, CompletableFuture, @Async). Use when user asks "check thread safety", "concurrency review", "async code review", or when reviewing multi-threaded code.
 ---
 
+<!-- Adapted from decebals/claude-code-java (MIT); modified for delivery-doctrine. See THIRD_PARTY_NOTICES.md. -->
+
 # Concurrency Review Skill
 
 Review Java concurrent code for correctness, safety, and modern best practices.

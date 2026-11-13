@@ -31,10 +31,10 @@ def metrics_dir():
 # ---- tool categories: what kind of work a tool call is ----
 
 BASH_RULES = [
-    ("test",      r"\bgo test\b|\bpytest\b|\bmake test"),
+    ("test",      r"\bgo test\b|\bpytest\b|\bmake test|\bmvnw? .*\btest\b|\bgradlew? .*\btest\b"),
     ("lint",      r"make lint|golangci|gofmt|goimports|\bgo vet\b|ruff|nilaway|mypy|pyright|\bblack\b"),
     ("codegen",   r"make generate|go generate|atlas migrate|openapi-generator"),
-    ("build",     r"\bgo build\b|make build"),
+    ("build",     r"\bgo build\b|make build|\bmvnw? |\bgradlew? "),
     ("git",       r"^\s*(cd [^&;]*&&\s*)?git |\bgh "),
     ("run-app",   r"go run .*cmd/server|make run-backend|setup-workspace|run-local-services|docker"),
     ("search",    r"\b(grep|rg|ugrep|find|ls|sed -n|cat|head|tail|awk|wc)\b"),
@@ -364,6 +364,8 @@ def summarise(runs_path=None):
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "summarise":
         summarise(sys.argv[2] if len(sys.argv) > 2 else None)
+        return
+    if os.environ.get("DOCTRINE_METRICS", "1") == "0":
         return
     try:
         run_hook()

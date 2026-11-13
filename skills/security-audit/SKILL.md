@@ -3,6 +3,8 @@ name: security-audit
 description: Java security checklist covering OWASP Top 10, input validation, injection prevention, and secure coding. Works with Spring, Quarkus, Jakarta EE, and plain Java. Use when reviewing code security, before releases, or when user asks about vulnerabilities.
 ---
 
+<!-- Adapted from decebals/claude-code-java (MIT); modified for delivery-doctrine. See THIRD_PARTY_NOTICES.md. -->
+
 # Security Audit Skill
 
 Security checklist for Java applications based on OWASP Top 10 and secure coding practices.

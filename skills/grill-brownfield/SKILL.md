@@ -7,6 +7,8 @@ description: Brownfield grilling session — challenges your plan against the ex
   grill-fast instead.
 ---
 
+<!-- Adapted from mattpocock/skills (MIT); modified for delivery-doctrine. See THIRD_PARTY_NOTICES.md. -->
+
 <what-to-do>
 
 Interview me relentlessly about every aspect of this plan until we reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
@@ -119,7 +121,7 @@ If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](
 When the grill reaches shared understanding and the goal is to build (not just
 comprehend), produce the same handoff `delivery-doctrine:grill-fast` does: lock the requirements and the
 acceptance behaviors (the plan of what must be tested), present them as Gate 1, and on
-approval invoke `delivery-doctrine:thin-slice-planner` for the ordered slice list (Gate 2). Honor the
+approval invoke `delivery-doctrine:thin-slice-planner` for the wave plan (Gate 2). Honor the
 existing architecture — slices conform to the house style, they don't impose a new one.
 For comprehension-only sessions, stop at shared understanding; no slices needed.
 

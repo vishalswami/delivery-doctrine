@@ -1,3 +1,5 @@
+<!-- Adapted from mattpocock/skills (MIT); modified for delivery-doctrine. See THIRD_PARTY_NOTICES.md. -->
+
 # CONTEXT.md Format
 
 ## Structure

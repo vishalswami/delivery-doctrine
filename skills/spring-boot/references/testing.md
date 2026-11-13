@@ -1,6 +1,8 @@
+<!-- Adapted from piomin/claude-ai-spring-boot (Apache-2.0); modified for delivery-doctrine. See THIRD_PARTY_NOTICES.md. -->
+
 # Testing - Spring Boot Test
 
-## Unit Testing with JUnit 5
+## Unit Testing with JUnit Jupiter
 
 ```java
 @ExtendWith(MockitoExtension.class)
@@ -18,7 +20,6 @@ class UserServiceTest {
     @Test
     @DisplayName("Should create user successfully")
     void shouldCreateUser() {
-        // Given
         UserCreateRequest request = new UserCreateRequest(
             "test@example.com",
             "Password123",
@@ -35,10 +36,8 @@ class UserServiceTest {
         when(passwordEncoder.encode(request.password())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(user);
 
-        // When
         UserResponse response = userService.create(request);
 
-        // Then
         assertThat(response).isNotNull();
         assertThat(response.email()).isEqualTo(request.email());
 
@@ -50,7 +49,6 @@ class UserServiceTest {
     @Test
     @DisplayName("Should throw exception when email already exists")
     void shouldThrowExceptionWhenEmailExists() {
-        // Given
         UserCreateRequest request = new UserCreateRequest(
             "test@example.com",
             "Password123",
@@ -60,7 +58,6 @@ class UserServiceTest {
 
         when(userRepository.existsByEmail(request.email())).thenReturn(true);
 
-        // When & Then
         assertThatThrownBy(() -> userService.create(request))
             .isInstanceOf(DuplicateResourceException.class)
             .hasMessageContaining("Email already registered");
@@ -74,12 +71,13 @@ class UserServiceTest {
 
 ```java
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureRestTestClient
 @ActiveProfiles("test")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class UserIntegrationTest {
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    private RestTestClient restTestClient;
 
     @Autowired
     private UserRepository userRepository;
@@ -93,7 +91,6 @@ class UserIntegrationTest {
     @Order(1)
     @DisplayName("Should create user via API")
     void shouldCreateUserViaApi() {
-        // Given
         UserCreateRequest request = new UserCreateRequest(
             "test@example.com",
             "Password123",
@@ -101,25 +98,22 @@ class UserIntegrationTest {
             25
         );
 
-        // When
-        ResponseEntity<UserResponse> response = restTemplate.postForEntity(
-            "/api/v1/users",
-            request,
-            UserResponse.class
-        );
+        RestTestClient.ResponseSpec response = restTestClient.post()
+            .uri("/api/v1/users")
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(request)
+            .exchange();
 
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().email()).isEqualTo(request.email());
-        assertThat(response.getHeaders().getLocation()).isNotNull();
+        response.expectStatus().isCreated()
+            .expectHeader().exists("Location")
+            .expectBody(UserResponse.class)
+            .value(body -> assertThat(body.email()).isEqualTo(request.email()));
     }
 
     @Test
     @Order(2)
     @DisplayName("Should return validation error for invalid request")
     void shouldReturnValidationError() {
-        // Given
         UserCreateRequest request = new UserCreateRequest(
             "invalid-email",
             "short",
@@ -127,20 +121,20 @@ class UserIntegrationTest {
             15
         );
 
-        // When
-        ResponseEntity<ValidationErrorResponse> response = restTemplate.postForEntity(
-            "/api/v1/users",
-            request,
-            ValidationErrorResponse.class
-        );
+        RestTestClient.ResponseSpec response = restTestClient.post()
+            .uri("/api/v1/users")
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(request)
+            .exchange();
 
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().errors()).isNotEmpty();
+        response.expectStatus().isBadRequest()
+            .expectBody()
+            .jsonPath("$.errors").isNotEmpty();
     }
 }
 ```
+
+Spring Boot 4: `@SpringBootTest` no longer auto-configures a client. `RestTestClient` (Spring Framework 7) needs `@AutoConfigureRestTestClient` from `spring-boot-resttestclient`. `TestRestTemplate` still exists in `org.springframework.boot.resttestclient` but needs `@AutoConfigureTestRestTemplate`, and `MockMvc` in a `@SpringBootTest` needs `@AutoConfigureMockMvc`.
 
 ## Web Layer Testing with MockMvc
 
@@ -152,7 +146,7 @@ class UserControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private UserService userService;
 
     @Autowired
@@ -162,7 +156,6 @@ class UserControllerTest {
     @WithMockUser(roles = "ADMIN")
     @DisplayName("Should get all users")
     void shouldGetAllUsers() throws Exception {
-        // Given
         Page<UserResponse> users = new PageImpl<>(List.of(
             new UserResponse(1L, "user1@example.com", "user1", 25, true, null, null),
             new UserResponse(2L, "user2@example.com", "user2", 30, true, null, null)
@@ -170,7 +163,6 @@ class UserControllerTest {
 
         when(userService.findAll(any(Pageable.class))).thenReturn(users);
 
-        // When & Then
         mockMvc.perform(get("/api/v1/users")
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -184,7 +176,6 @@ class UserControllerTest {
     @WithMockUser(roles = "ADMIN")
     @DisplayName("Should create user")
     void shouldCreateUser() throws Exception {
-        // Given
         UserCreateRequest request = new UserCreateRequest(
             "test@example.com",
             "Password123",
@@ -204,7 +195,6 @@ class UserControllerTest {
 
         when(userService.create(any(UserCreateRequest.class))).thenReturn(response);
 
-        // When & Then
         mockMvc.perform(post("/api/v1/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -226,6 +216,8 @@ class UserControllerTest {
 }
 ```
 
+`@WebMvcTest` comes from `org.springframework.boot.webmvc.test.autoconfigure` (module `spring-boot-webmvc-test`). With Jackson 3, the injected `ObjectMapper` is `tools.jackson.databind.ObjectMapper` (the auto-configured `JsonMapper`), and `writeValueAsString` throws the unchecked `JacksonException`. `MockMvcTester` (AssertJ-based) is available alongside `MockMvc`.
+
 ## Data JPA Testing
 
 ```java
@@ -243,7 +235,6 @@ class UserRepositoryTest {
     @Test
     @DisplayName("Should find user by email")
     void shouldFindUserByEmail() {
-        // Given
         User user = User.builder()
             .email("test@example.com")
             .password("password")
@@ -253,10 +244,8 @@ class UserRepositoryTest {
 
         entityManager.persistAndFlush(user);
 
-        // When
         Optional<User> found = userRepository.findByEmail("test@example.com");
 
-        // Then
         assertThat(found).isPresent();
         assertThat(found.get().getEmail()).isEqualTo("test@example.com");
     }
@@ -264,7 +253,6 @@ class UserRepositoryTest {
     @Test
     @DisplayName("Should check if email exists")
     void shouldCheckIfEmailExists() {
-        // Given
         User user = User.builder()
             .email("test@example.com")
             .password("password")
@@ -274,17 +262,14 @@ class UserRepositoryTest {
 
         entityManager.persistAndFlush(user);
 
-        // When
         boolean exists = userRepository.existsByEmail("test@example.com");
 
-        // Then
         assertThat(exists).isTrue();
     }
 
     @Test
     @DisplayName("Should fetch user with roles")
     void shouldFetchUserWithRoles() {
-        // Given
         Role adminRole = Role.builder().name("ADMIN").build();
         entityManager.persist(adminRole);
 
@@ -299,10 +284,8 @@ class UserRepositoryTest {
         entityManager.persistAndFlush(user);
         entityManager.clear();
 
-        // When
         Optional<User> found = userRepository.findByEmailWithRoles("admin@example.com");
 
-        // Then
         assertThat(found).isPresent();
         assertThat(found.get().getRoles()).hasSize(1);
         assertThat(found.get().getRoles()).extracting(Role::getName).contains("ADMIN");
@@ -310,7 +293,7 @@ class UserRepositoryTest {
 }
 ```
 
-## Testcontainers for Database
+## Testcontainers with @ServiceConnection
 
 ```java
 @SpringBootTest
@@ -319,17 +302,8 @@ class UserRepositoryTest {
 class UserServiceIntegrationTest {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-        .withDatabaseName("testdb")
-        .withUsername("test")
-        .withPassword("test");
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
+    @ServiceConnection
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17-alpine");
 
     @Autowired
     private UserService userService;
@@ -345,7 +319,6 @@ class UserServiceIntegrationTest {
     @Test
     @DisplayName("Should create and find user in real database")
     void shouldCreateAndFindUser() {
-        // Given
         UserCreateRequest request = new UserCreateRequest(
             "test@example.com",
             "Password123",
@@ -353,16 +326,16 @@ class UserServiceIntegrationTest {
             25
         );
 
-        // When
         UserResponse created = userService.create(request);
         UserResponse found = userService.findById(created.id());
 
-        // Then
         assertThat(found).isNotNull();
         assertThat(found.email()).isEqualTo(request.email());
     }
 }
 ```
+
+`@ServiceConnection` (`org.springframework.boot.testcontainers.service.connection`) derives the datasource properties from the container, replacing `@DynamicPropertySource`. Testcontainers 2 moved modules to `org.testcontainers.<module>` packages with non-generic classes: `org.testcontainers.postgresql.PostgreSQLContainer` from artifact `testcontainers-postgresql`.
 
 ## Testing Reactive Endpoints with WebTestClient
 
@@ -373,13 +346,12 @@ class UserReactiveControllerTest {
     @Autowired
     private WebTestClient webTestClient;
 
-    @MockBean
+    @MockitoBean
     private UserReactiveService userService;
 
     @Test
     @DisplayName("Should get user reactively")
     void shouldGetUserReactively() {
-        // Given
         UserResponse user = new UserResponse(
             1L,
             "test@example.com",
@@ -392,7 +364,6 @@ class UserReactiveControllerTest {
 
         when(userService.findById(1L)).thenReturn(Mono.just(user));
 
-        // When & Then
         webTestClient.get()
             .uri("/api/v1/users/{id}", 1L)
             .accept(MediaType.APPLICATION_JSON)
@@ -408,7 +379,6 @@ class UserReactiveControllerTest {
     @Test
     @DisplayName("Should create user reactively")
     void shouldCreateUserReactively() {
-        // Given
         UserCreateRequest request = new UserCreateRequest(
             "test@example.com",
             "Password123",
@@ -428,7 +398,6 @@ class UserReactiveControllerTest {
 
         when(userService.create(any(UserCreateRequest.class))).thenReturn(Mono.just(response));
 
-        // When & Then
         webTestClient.post()
             .uri("/api/v1/users")
             .contentType(MediaType.APPLICATION_JSON)
@@ -446,8 +415,9 @@ class UserReactiveControllerTest {
 
 ## Testing Configuration
 
-```java
-// application-test.yml
+**application-test.yml**
+
+```yaml
 spring:
   datasource:
     url: jdbc:h2:mem:testdb
@@ -467,16 +437,19 @@ spring:
 logging:
   level:
     org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.hibernate.orm.jdbc.bind: TRACE
+```
 
-// Test Configuration Class
+**Test configuration class** (a low-cost BCrypt strength keeps tests fast)
+
+```java
 @TestConfiguration
 public class TestConfig {
 
     @Bean
     @Primary
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(4); // Faster for tests
+        return new BCryptPasswordEncoder(4);
     }
 
     @Bean
@@ -522,10 +495,14 @@ public class TestDataFactory {
 | Annotation | Purpose |
 |------------|---------|
 | `@SpringBootTest` | Full application context integration test |
-| `@WebMvcTest` | Test MVC controllers with mocked services |
+| `@WebMvcTest` | Test MVC controllers with mocked services (`spring-boot-webmvc-test`) |
 | `@WebFluxTest` | Test reactive controllers |
-| `@DataJpaTest` | Test JPA repositories with in-memory database |
-| `@MockBean` | Add mock bean to Spring context |
+| `@DataJpaTest` | Test JPA repositories (`spring-boot-data-jpa-test`) |
+| `@MockitoBean` | Add mock bean to Spring context (replaces `@MockBean`, removed in Spring Boot 4) |
+| `@MockitoSpyBean` | Wrap a Spring bean in a Mockito spy (replaces `@SpyBean`) |
+| `@AutoConfigureRestTestClient` | Auto-configure `RestTestClient` for `@SpringBootTest` |
+| `@AutoConfigureMockMvc` | Auto-configure `MockMvc`/`MockMvcTester` for `@SpringBootTest` |
+| `@ServiceConnection` | Wire a Testcontainers container into Spring Boot connection details |
 | `@WithMockUser` | Mock authenticated user for security tests |
 | `@Testcontainers` | Enable Testcontainers support |
 | `@ActiveProfiles` | Activate specific Spring profiles for test |
