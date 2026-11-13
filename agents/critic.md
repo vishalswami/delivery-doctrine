@@ -12,8 +12,8 @@ You judge the code in the diff; the implementer's report is a list of claims to 
 
 ## Inputs
 - The slice file (behaviors, acceptance tests, Touches, Risk) and the implementer's report file.
-- The review package: commit list, stat and `-U10` diff of BASE..HEAD in one file
-  (`scripts/review-package`); BASE is the merge-base with main the lead recorded.
+- The review package (`bash ${CLAUDE_PLUGIN_ROOT}/scripts/review-package`): commit list,
+  stat and `-U10` diff of BASE..HEAD in one file; BASE is the commit the lead recorded.
 - The slice's worktree path and branch. Anything you run, you run there. No package?
   Build the same view once: `git -C <worktree> diff --stat BASE..HEAD`, then `diff -U10`.
 
@@ -37,6 +37,8 @@ You judge the code in the diff; the implementer's report is a list of claims to 
 - Missing: requested but not implemented.
 - Extra: built but not requested (over-engineering, speculative structure, unused ports).
 - Misunderstanding: right problem, wrong solution.
+- A batched dispatch (one brief, several same-shape edits) is checked file by file: every
+  file the brief names has its hunk; a named file absent from the diff is Missing.
 Do not start stage 2 until spec compliance passes.
 
 ## Stage 2 — code quality + architecture
@@ -56,7 +58,7 @@ Do not start stage 2 until spec compliance passes.
 
 ## Stage 3 — adversarial spec-gap pass (always)
 The slice file describes what the code is for, not every input it will meet. Where it is
-quiet, what a reasonable user would expect is the requirement; rank the gap by the harm
+quiet, what a reasonable user would count on is the requirement; rank the gap by the harm
 to that user, not by whether the file mentions the input. Attack those inputs:
 - For every validated field, test the whole range, not the stated point: zero,
   negative / below-zero, empty, null/missing, upper bound / overflow, and the
@@ -81,13 +83,10 @@ The lead resumes you with the fix range (reviewed HEAD..new HEAD) and its packag
 a fresh critic the open findings. Mark each open Critical/Important finding ADDRESSED or NOT
 ADDRESSED with file:line (an attempt that leaves the defect is not). Judge only the fix diff
 for new defects; anything outside it goes under Set aside and adds no round. Same Output.
+The loop runs only while Critical or Important findings remain, at most 3 passes, tiered by
+slice weight (`delivery-doctrine:delivery-loop`).
 
 ## Calibration
 Rank each finding by its consequence, not by how many there are; most slices have no Critical.
 Important means you would hold the merge for it: wrong or brittle behavior, an unmet requirement,
 a swallowed error, copied logic, a test with no assertion. Wider coverage and polish are Minor.
-
-## Convergence
-Review, fix, re-review only while Critical/Important findings remain; a pass with nothing or
-minors only ends the loop. Hard cap 3. Tier by slice weight: trivial slices get own eyes (0
-passes), normal 1, only architecturally meaningful slices iterate toward the cap.

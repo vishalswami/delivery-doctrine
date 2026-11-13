@@ -24,7 +24,7 @@ for a greenfield throwaway. A low-gear task that outgrows itself graduates to fu
 rebuilt, not promoted in place.
 Safe defaults when unstated: no gear named → full gear; architecture unclear → honor the
 existing codebase; a shared/house repo → team commit mode, no remote → solo (see
-`delivery-doctrine:superpowers-seam`).
+`delivery-doctrine:delivery-loop`).
 House facts (spec folder, hot files, PR and merge rules, worktree setup) come from the
 repository profile when one is injected below; otherwise discover and honor them.
 
@@ -67,7 +67,7 @@ a light pass on the rest.
   touched bounded context's context file (its AGENTS.md or CLAUDE.md) is updated.
   Depth: `delivery-doctrine:close-out`.
 - Critic loop is iteration-based, convergence-gated, and tiered by slice weight (hard
-  cap 3 passes, 3 lenses); mechanics live in `critic.md` and `delivery-doctrine:superpowers-seam`.
+  cap 3 passes, 3 lenses); mechanics live in `critic.md` and `delivery-doctrine:delivery-loop`.
 - Every local check is scoped to what the slice touched: its tests by name or pattern,
   lint on its files, the race detector once at the end on concurrent tests, the app
   started only when wiring changed. One package run at slice close is fine; `./...`,
@@ -87,7 +87,8 @@ a light pass on the rest.
 ## Implementer / critic roles
 Roles name the job; the model follows the task. Implementer writes; critic reviews;
 implementer fixes; a few passes only where it earns it.
-- Agents: `delivery-doctrine:implementer`, `delivery-doctrine:critic`. Built on superpowers' subagent prompts (see seam).
+- Agents: `delivery-doctrine:implementer`, `delivery-doctrine:critic`; the loop that runs
+  them: `delivery-doctrine:delivery-loop`.
 - Execution: subagent implementer for full-gear real work (it logs its responses to
   your review comments in its final report, since subagent replies aren't visible
   mid-run). Run the implementer inline in the main session when the scope is small
@@ -138,12 +139,10 @@ No dead air. Every agent-run window has a designated thing being said or done:
 explain a skill, justify a decision, or review the prior slice by hand.
 - Depth: `delivery-doctrine:narration-cue-map`.
 
-## The seam (superpowers and this doctrine)
-Superpowers supplies the subagent and review mechanics the seam names. This
-doctrine owns test-first and the orchestration: grilling, vertical slicing, the
-implementer/critic loop, Definition of Done, and the gates. They compose; they
-do not overlap.
-- Depth: `delivery-doctrine:superpowers-seam`.
+## The loop
+Commit modes, dispatch into worktrees, review packages, the fix loop, PRs, the wave gate
+and cleanup, run by the lead with a ledger that survives compaction.
+- Depth: `delivery-doctrine:delivery-loop`.
 
 ## Skills
 Each skill self-describes; the harness lists them. Language profiles load only on their

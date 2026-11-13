@@ -84,8 +84,8 @@ Each test exists to catch one specific break, and catches it against the real co
   would turn it red. If only a deliberate change would (a constant's value, a message's
   wording, private structure), the test breaks on every redesign and never on a bug:
   assert the behavior built on that choice instead.
-- **Derive expectations by hand**, as literals or hand-checked fixtures. A value produced
-  by the code under test, or by its helpers, agrees with it whatever it does.
+- **Derive expectations by hand**, as literals or hand-checked fixtures. A value the code
+  under test produced, itself or through a helper, agrees with it whatever it does.
 - **A mock earns no assertion.** Asserting a mock was called proves the mock exists.
   Assert the outcome; assert arguments, counts or order only when the interaction is the
   contract, and then give each branch its own double.
@@ -111,7 +111,7 @@ nothing catches is an unprotected behavior.
 
 Stop and restart the loop on any of these: production code with no failing test before
 it; a new test green on its first run; a red you cannot explain; an assertion on a mock,
-or an expected value computed by the code under test.
+or an expected value the code under test produced.
 
 ## Pairing
 Ecosystem detail: `delivery-doctrine:gwt-testing` (Java/JUnit),

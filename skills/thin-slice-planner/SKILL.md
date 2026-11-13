@@ -117,4 +117,4 @@ test, its dependencies, and its Risk; never skim — a skipped slice is how gaps
 ## Handoff
 After approval, the per-wave loop runs: all slices of a wave start together, each
 through red → green → review → PR; the wave gate merges them; then the next wave. See
-`delivery-doctrine:superpowers-seam`. Once the feature is live: `delivery-doctrine:close-out`.
+`delivery-doctrine:delivery-loop`. Once the feature is live: `delivery-doctrine:close-out`.

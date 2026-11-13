@@ -11,7 +11,7 @@ and language profiles for Java, Python, and Go.
   alignment gates, vertical slicing, per-slice Definition of Done, architecture
   judgment, narration discipline, safe defaults.
 - **21 skills** — the method: `grill-fast` (greenfield), `grill-brownfield`,
-  `thin-slice-planner` (waves of parallel PRs, + plan-critic gate), `superpowers-seam`,
+  `thin-slice-planner` (waves of parallel PRs, + plan-critic gate), `delivery-loop`,
   `close-out` (once live: consolidate slice files into plan/design/deferred, delete them, fact-check and tighten the three, update each bounded context's context file),
   `ddd-hexagonal-reviewer`, `fast-path` (low gear), `acceptance-testing`,
   `test-first`, `execution-hygiene`, `narration-cue-map`; plus language

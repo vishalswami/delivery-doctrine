@@ -13,8 +13,8 @@ tasks, and bugfixes where the clock beats architecture. Reduced ceremony, not re
 correctness.
 
 By default the implementer runs inline in the main session, not as a dispatched
-subagent — small scope means no isolation overhead and its replies stay visible (see
-CLAUDE.md's execution rule).
+subagent — small scope means no isolation overhead and its replies stay visible (the
+doctrine's execution rule; `delivery-doctrine:delivery-loop`, Inline mode).
 
 ## The flow
 1. **Grill with `delivery-doctrine:grill-fast`, scope-appropriate.** Run the `delivery-doctrine:grill-fast` skill even in
@@ -32,8 +32,8 @@ CLAUDE.md's execution rule).
    adversarial spec-gap); fix findings; then your own eye-pass. No iterate-to-cap loop.
 4. **Run and commit.** Acceptance green (the test you wrote, by name), the app started
    if wiring changed (a walking skeleton usually is wiring), commit the green thread with
-   a clear message. In team mode, commit on a branch and PR per `delivery-doctrine:superpowers-seam`'s commit
-   protocol — house lint/CI gates apply regardless of gear. Follow `delivery-doctrine:execution-hygiene`
+   a clear message. In team mode, commit on a branch and PR per `delivery-doctrine:delivery-loop`'s commit
+   modes — house lint/CI gates apply regardless of gear. Follow `delivery-doctrine:execution-hygiene`
    when running tests or any long command.
 
 ## What low gear drops (vs full gear)

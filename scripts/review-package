@@ -1,14 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-usage="usage: review-package [-C DIR] BASE HEAD [OUTFILE]"
+usage="usage: review-package [-C DIR] [-s SPEC_FOLDER] BASE HEAD [OUTFILE]"
 here=$(cd "$(dirname "$0")" && pwd)
+spec=()
 
-if [ "${1:-}" = "-C" ]; then
-  [ -d "${2:-}" ] || { echo "bad -C directory: ${2:-}" >&2; exit 2; }
-  cd "$2"
-  shift 2
-fi
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -C)
+      [ -d "${2:-}" ] || { echo "bad -C directory: ${2:-}" >&2; exit 2; }
+      cd "$2"
+      shift 2 ;;
+    -s)
+      [ -n "${2:-}" ] || { echo "$usage" >&2; exit 2; }
+      spec=("$2")
+      shift 2 ;;
+    *) break ;;
+  esac
+done
 [ $# -eq 2 ] || [ $# -eq 3 ] || { echo "$usage" >&2; exit 2; }
 
 git rev-parse --show-toplevel >/dev/null 2>&1 \
@@ -27,7 +36,7 @@ commits=$(git rev-list --count "${base}..${head}")
 if [ $# -eq 3 ]; then
   out=$3
 else
-  dir=$("${BASH:-bash}" "$here/build-scratch")
+  dir=$("${BASH:-bash}" "$here/build-scratch" ${spec[@]+"${spec[@]}"})
   out="$dir/review-$(git rev-parse --short "$base")..$(git rev-parse --short "$head").diff"
 fi
 

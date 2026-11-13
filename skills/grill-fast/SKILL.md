@@ -87,4 +87,4 @@ agreed before any code) belongs to the planner.
 ## Reuse
 - Spirit, precision, recommend-an-answer: `delivery-doctrine:grill-brownfield`.
 - Slice decomposition and ordering: `delivery-doctrine:thin-slice-planner`.
-- Loop and review after slicing: `delivery-doctrine:superpowers-seam`.
+- Loop and review after slicing: `delivery-doctrine:delivery-loop`.
