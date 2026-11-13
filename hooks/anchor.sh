@@ -11,7 +11,7 @@ import json, os
 ANCHOR = """Delivery doctrine, restated because this session is long:
 - Gear named first (full or low). Stop at every gate; only an explicit yes moves past it.
 - Load the skill a step names before acting on it; a bug or failing test → systematic-debugging first.
-- Delegate heavy reading and building to subagents with `model` set; the main session orchestrates.
+- Full gear: building goes to implementer subagents with `model` set; the lead orchestrates and never patches a dispatched slice itself.
 - Local checks scoped to what changed; full suites are CI's. No claim of done without fresh output.
 - After a long run, the ledger, the spec files and `git log` are the truth, not memory."""
 
@@ -22,13 +22,15 @@ try:
     size = os.path.getsize(path)
     with open(path, "rb") as f:
         f.seek(max(0, size - 4 * 1024 * 1024))
-        tail = f.read().decode("utf-8", "replace").splitlines()
+        tail = f.read().decode("utf-8", "replace").split("\n")
     context = 0
     for line in reversed(tail):
         try:
             entry = json.loads(line)
         except ValueError:
             continue
+        if entry.get("type") == "system" and entry.get("subtype") == "compact_boundary":
+            break
         message = entry.get("message")
         if entry.get("type") != "assistant" or entry.get("isSidechain") or not isinstance(message, dict):
             continue
