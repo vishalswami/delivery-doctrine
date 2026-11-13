@@ -13,7 +13,6 @@ compose. Where they overlap, this file says who wins.
 ## Ownership
 - superpowers `subagent-driven-development` — implementer + spec/code-quality
   reviewer prompts, status handling.
-- superpowers `writing-plans` — bite-sized TDD step format only.
 - doctrine `delivery-doctrine:grill-fast` — requirements grill.
 - doctrine `delivery-doctrine:test-first` — red-green-refactor inner loop, test structure.
 - doctrine `delivery-doctrine:thin-slice-planner` — vertical slice decomposition into waves,
@@ -29,9 +28,9 @@ compose. Where they overlap, this file says who wins.
    hard stop for the user's go-ahead. Borrow SDD's prompts and two-stage review;
    drive the loop yourself and end the turn at each wave gate. Parallel dispatch of a
    wave's slices follows superpowers `dispatching-parallel-agents`.
-2. **thin-slice-planner owns decomposition; writing-plans is format only.**
-   Decompose by end-to-end behavior (vertical), not by file/responsibility.
-   Expand an approved slice into writing-plans' bite-sized TDD steps if useful.
+2. **thin-slice-planner owns decomposition and the step format.** Decompose by
+   end-to-end behavior (vertical), not by file/responsibility. A mechanical slice may
+   carry steps (thin-slice-planner, Steps).
 3. **Test-first is the doctrine's own.** The implementer subagent and the inline
    per-slice red-to-green both follow `delivery-doctrine:test-first`.
 4. **The lead decides what to delegate.** Design decisions stay with the lead;

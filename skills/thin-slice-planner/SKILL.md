@@ -29,8 +29,8 @@ never from fatter slices.
 1. **Slice 0 = walking skeleton.** The thinnest end-to-end path wired and passing
    before any feature: one request in, through all layers, one response out,
    proving the wiring. Not a feature. It also lands the shared seams later slices
-   need — contracts, interfaces, any migration later slices share, registration points, wiring, and empty
-   per-slice sections in shared docs — so they depend on it alone.
+   need — contracts, interfaces, any migration later slices share, registration points,
+   wiring, and empty per-slice sections in shared docs — so they depend on it alone.
 2. **Group behaviors into slices.** A slice is one thin vertical and usually owns
    several related acceptance behaviors (happy path plus its negative and edge flows).
    Group the grill's behaviors by the vertical they exercise; each behavior's test is
@@ -56,7 +56,8 @@ never from fatter slices.
    wave's PRs in one sitting, and a serial merge queue flattens the gain past 3-4.
 8. **Just-in-time within each slice.** A slice touches all the layers it needs and
    builds only what it needs. No speculative ports, repositories, or entities;
-   note what is deliberately stubbed this slice and built later.
+   note what is deliberately stubbed this slice and built later. Over-engineering and
+   horizontal creep: `delivery-doctrine:ddd-hexagonal-reviewer`.
 9. **Name the MVP vertical** (the slices that prove the core domain end to end) and
    **the deferrals** (out of scope for now, and where each slots in later).
 10. **State conventions once.** Error handling and validation approach up front,
@@ -70,14 +71,18 @@ never from fatter slices.
 - Cue: <one-glance flow sketch, e.g. `POST /booking → check overlap → persist → 201`>
 - Acceptance tests: <one GWT flow per behavior this slice owns — positive + negative/edge>
 - Touches: <files or packages where known; every hot file it edits, always>
+- Interfaces: <consumes: exact names and signatures from earlier slices; produces: what
+  later slices or wave-mates build against; "none">
 - Depends on: <slice ids + why it needs their code on main; "none">
 - Establishes: <convention or boundary introduced here, if any>
 - Risk: <most likely wrong or skipped here; "none" if trivial>
 - Deferred: <what's intentionally not built yet>
 ```
 Slice 0 uses the same shape (Proves: end-to-end wiring). End with the **wave table**
-(wave → slices, plus any merge order or release check inside a wave), the **MVP vertical**, and **Deferred**
-(what + where it slots).
+(wave → slices, plus any merge order or release check inside a wave), the **MVP
+vertical**, and **Deferred** (what + where it slots). Interfaces are exact signatures
+(`ReserveSeat(ctx, showID, seat) (Hold, error)`): wave-mates build against each other's
+contracts before either merges, and the slice file is all they share.
 
 Where it is written: the spec folder (the repository profile names it; otherwise
 `docs/specs/<date>-<feature>/`). The wave table, MVP vertical and deferrals go in
@@ -85,17 +90,23 @@ Where it is written: the spec folder (the repository profile names it; otherwise
 carry the agreed requirements and design from Gate 1; the slice files are build notes
 that close-out removes.
 
+## Steps (optional)
+Only for a mechanical slice (a standard-tier dispatch) or a live session that wants a
+script. Five per behavior: the failing test as code, with the spec's values; the run and
+the failure it should show; the signature to implement and its file; the run that should
+pass; the commit. A step is done when it leaves one reasonable thing to write, not when
+it holds the code; steps longer than the code they describe are a transcript.
+
 ## Low gear
-In low gear (see `delivery-doctrine:fast-path`), skip the wave plan: emit only the walking
-skeleton (one, at most two slices, serial), and no MVP/deferrals section. JIT still
-applies.
+In low gear (`delivery-doctrine:fast-path`), skip the wave plan: emit only the walking
+skeleton (one, at most two slices, serial), and no MVP/deferrals section. JIT still applies.
 
 ## Plan-critic (full gear, not demos)
 Before Gate 2, dispatch the `plan-critic` agent — a fresh context that did NOT write
-the plan — to check it against the actual problem statement: coverage misses, drift,
-false dependencies, and collisions between wave-mates. Fold its findings in before
-presenting Gate 2. Skip in low gear and in live/presented sessions — there the
-deliberate slice-walk at Gate 2 is the safeguard.
+the plan — to check it against the actual problem statement: coverage misses, drift, false
+dependencies, collisions and interface mismatches between wave-mates, and defects the plan
+mandates. Fold its findings in before presenting Gate 2. Skip in low gear and in
+live/presented sessions — there the deliberate slice-walk at Gate 2 is the safeguard.
 
 ## Gate 2 — wave plan agreed
 Stop. Present the wave table, each slice, the MVP vertical, and the deferrals. Wait for
@@ -106,8 +117,3 @@ test, its dependencies, and its Risk; never skim — a skipped slice is how gaps
 After approval, the per-wave loop runs: all slices of a wave start together, each
 through red → green → review → PR; the wave gate merges them; then the next wave. See
 `delivery-doctrine:superpowers-seam`. Once the feature is live: `delivery-doctrine:close-out`.
-
-## Reuse
-- Bite-sized TDD step format within a slice: superpowers `writing-plans` (format only).
-- Over-engineering / horizontal-creep check: `delivery-doctrine:ddd-hexagonal-reviewer`.
-- Loop, worktree and merge protocol: `delivery-doctrine:superpowers-seam`.
