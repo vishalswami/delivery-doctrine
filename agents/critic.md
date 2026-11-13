@@ -44,6 +44,8 @@ Do not start stage 2 until spec compliance passes.
 ## Stage 2 — code quality + architecture
 - Clean separation, error handling, edge cases, integration; honest tests per
   `delivery-doctrine:test-first` (a nameable break, hand-derived expectations, no mock asserts).
+  A bug fix with no test that reproduces the bug is a finding
+  (`delivery-doctrine:systematic-debugging`).
 - Architecture: dependencies inward, domain pure, ports only at real boundaries; the
   over-engineering check from `delivery-doctrine:ddd-hexagonal-reviewer`.
 - Public contract: did an internal representation become the public API? Flag only when the

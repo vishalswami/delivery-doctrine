@@ -42,8 +42,9 @@ line and its commits is never redone. Close-out deletes the dir.
 1. **Start.** Every slice of the wave starts off current main, one implementer each, all
    dispatched in one message so they run in parallel. Record BASE (`git rev-parse main`, or
    the house base branch) first; never `HEAD~1`, which loses all but the last commit. The
-   lead's checkout sits on that commit and each dispatch sets `isolation: worktree`; `git worktree add` only where the repository profile names a
-   location, and that location is git-ignored. On a 429, retry; never widen.
+   lead's checkout sits on that commit and each dispatch sets `isolation: worktree`;
+   `git worktree add` only where the repository profile names a location, and that location
+   is git-ignored. On a 429, retry; never widen.
 2. **Dispatch** content: one line on where the slice fits; the slice file path ("read this
    first; its values are exact"); interfaces from merged slices the file cannot know; the
    lead's ruling on any ambiguity; the report file path; `model` per the doctrine's task-type
@@ -104,10 +105,11 @@ into local main on the go-ahead, with the slice's tests run on the merged tree b
 Low gear and live sessions: the lead is the implementer, slices run one after another on a
 branch in place (a worktree only when the profile asks; `EnterWorktree` then). Reread the
 slice file before each slice: memory keeps a summary, the file keeps the values. Plan wrong →
-rule and ledger. The critic stays a subagent, once per meaningful slice, because the author's
-own read shares the author's blind spots. Its Critical and Important findings are fixed
-test-first, a reproducing test red then green, with no re-review; minors go to the ledger. In
-a live session the wave table's status column can serve as the ledger.
+rule and ledger; code wrong → `delivery-doctrine:systematic-debugging`. The critic stays a
+subagent, once per meaningful slice, because the author's own read shares the author's blind
+spots. Its Critical and Important findings are fixed test-first, a reproducing test red then
+green, with no re-review; minors go to the ledger. In a live session the wave table's status
+column can serve as the ledger.
 
 ## Models and narration
 `model` is set on every dispatch. Turn count beats token price: a cheaper model that takes
