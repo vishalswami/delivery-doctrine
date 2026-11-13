@@ -1,11 +1,12 @@
 # Third-party notices
 
-Some skills are adapted from other open-source projects. Each keeps its original
-license; the full texts are in `LICENSES/`. All of them were modified for this plugin
-(cross-references to the doctrine's skills, the doctrine's no-comments rule, trimmed or
-rewritten sections). The files adapted from superpowers were rewritten, not copied: the
-rules were re-scoped to the doctrine (scoped verification, waves, gates) and restated in its
-voice.
+Some skills, agents and scripts are adapted from other open-source projects. Each keeps
+its original license; the full texts are in `LICENSES/`. All of them were modified for this
+plugin (cross-references to the doctrine's skills, the doctrine's no-comments rule, trimmed or
+rewritten sections). The skills and agents adapted from superpowers were rewritten, not
+copied: the rules were re-scoped to the doctrine (scoped verification, waves, gates) and
+restated in its voice. The two scripts are adapted from its subagent-driven-development
+scripts, with a different interface and scratch-dir layout.
 
 | Files | Source | License |
 |---|---|---|

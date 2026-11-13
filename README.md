@@ -10,14 +10,19 @@ and language profiles for Java, Python, and Go.
 - **Doctrine** — injected at session start (SessionStart hook): gears (full / low),
   alignment gates, vertical slicing, per-slice Definition of Done, architecture
   judgment, narration discipline, safe defaults.
-- **21 skills** — the method: `grill-fast` (greenfield), `grill-brownfield`,
-  `thin-slice-planner` (waves of parallel PRs, + plan-critic gate), `delivery-loop`,
-  `close-out` (once live: consolidate slice files into plan/design/deferred, delete them, fact-check and tighten the three, update each bounded context's context file),
-  `ddd-hexagonal-reviewer`, `fast-path` (low gear), `acceptance-testing`,
-  `test-first`, `execution-hygiene`, `narration-cue-map`; plus language
-  profiles — Java (`spring-boot`, `gwt-testing`, `readable-java-style`, `code-quality`,
-  `concurrency-review`, `security-audit`), Python (`python-style`, `pytest-testing`),
-  Go (`go-style`, `go-testing`).
+- **23 skills** — the method: `grill-fast` (greenfield), `grill-brownfield`,
+  `thin-slice-planner` (waves of parallel PRs, + plan-critic gate), `delivery-loop` (the
+  per-wave loop: worktrees, ledger, review packages, fix loop, PRs, wave gate),
+  `close-out` (once live: consolidate slice files into plan/design/deferred, delete them,
+  fact-check and tighten the three, update each bounded context's context file),
+  `ddd-hexagonal-reviewer`, `fast-path` (low gear), `acceptance-testing`, `test-first`,
+  `execution-hygiene`, `systematic-debugging`, `review-feedback`, `narration-cue-map`; plus
+  language profiles — Java (`spring-boot`, `gwt-testing`, `readable-java-style`,
+  `code-quality`, `concurrency-review`, `security-audit`), Python (`python-style`,
+  `pytest-testing`), Go (`go-style`, `go-testing`).
+- **2 scripts** — `build-scratch` (the build's git-ignored scratch dir, shared by every
+  worktree) and `review-package` (one file holding a slice's commits, stat and diff for the
+  critic). The skills call them by their plugin path.
 - **3 agents** — `implementer` (opus by default, the deep tier unless remapped; mechanical
   work is dispatched on the standard tier), `critic` (deep, 3-lens review), `plan-critic`
   (deep, coverage/drift check before code). Tiers map to models in your profile; defaults
@@ -54,13 +59,9 @@ worktree reads the main checkout's `.local.md`, since the worktree has no copy o
 
 ## Requirements
 
-- **superpowers plugin** (declared as a dependency; auto-installs if the
-  `claude-plugins-official` marketplace is configured, otherwise install it first):
-  the doctrine calls its subagent-driven-development, dispatching-parallel-agents and
-  finishing-a-development-branch skills by name and does not replace them. Tested with
-  superpowers 7.0.x; the version is not pinned, because superpowers' release tags do not
-  follow the `superpowers--v<version>` form a pin needs.
 - `python3` on PATH (used by the guard and profile hooks).
+- `bash` and `git` (used by the scripts).
+- `gh`, for team mode's PRs and review threads.
 
 ## Install
 
@@ -70,8 +71,9 @@ claude plugin install delivery-doctrine@delivery-doctrine
 ```
 
 Verify after install (in a fresh session):
-- `/plugin` — delivery-doctrine listed and enabled (superpowers too).
-- `/context` — the doctrine text present; skills/agents listed under delivery-doctrine.
+- `/plugin` — delivery-doctrine listed and enabled, with no errors.
+- `/context` — the doctrine text present; the 23 skills and 3 agents listed under
+  delivery-doctrine.
 - `/hooks` — the SessionStart and PreToolUse hooks registered.
 - Ask "what gear are we in?" — the session should answer from the doctrine.
 - On a scratch branch, try `git push --force` — the guard must refuse and point to
@@ -123,8 +125,7 @@ Set them in the `env` block of `~/.claude/settings.json`.
 ## Other tools (Cursor, Codex)
 
 This is a native Claude Code plugin. Cursor/Codex have no standard mechanism for
-Claude Code plugins today (superpowers' `.cursor-plugin`/`.codex-plugin` dirs are their
-own custom tooling). The skills and agents are plain Markdown — portable by copying
+Claude Code plugins today. The skills and agents are plain Markdown — portable by copying
 into each tool's own rules/config format if needed.
 
 ## Shape of the method
@@ -146,5 +147,8 @@ dropping test-first, one critic pass, or architecture fit.
 MIT — see `LICENSE`. Some skills are adapted from Matt Pocock's
 [skills](https://github.com/mattpocock/skills) (MIT), Piotr Mińkowski's
 [claude-ai-spring-boot](https://github.com/piomin/claude-ai-spring-boot) (Apache-2.0) and
-Decebal Suiu's [claude-code-java](https://github.com/decebals/claude-code-java) (MIT); see
+Decebal Suiu's [claude-code-java](https://github.com/decebals/claude-code-java) (MIT); the
+delivery loop, test-first, execution-hygiene, systematic-debugging and review-feedback
+skills, the implementer and critic agents and the two scripts are adapted from Jesse
+Vincent's [superpowers](https://github.com/obra/superpowers) (MIT). See
 `THIRD_PARTY_NOTICES.md`.

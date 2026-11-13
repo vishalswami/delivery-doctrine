@@ -1,12 +1,11 @@
 {
   "name": "delivery-doctrine",
   "displayName": "Delivery Doctrine",
-  "version": "0.3.1",
-  "description": "A gear-based agentic delivery method: hypothesis-first grilling, vertical slicing with hard alignment gates, implementer/critic loop on top of superpowers TDD, right-sized architecture (hexagonal only where it earns it, honor existing codebases), and language profiles for Java, Python, and Go.",
+  "version": "0.4.0",
+  "description": "A gear-based agentic delivery method: hypothesis-first grilling, vertical slicing with hard alignment gates, a test-first implementer/critic loop run in waves of parallel PRs, right-sized architecture (hexagonal only where it earns it, honor existing codebases), and language profiles for Java, Python, and Go.",
   "author": {
     "name": "Vishal Swami"
   },
   "license": "MIT",
-  "keywords": ["tdd", "ddd", "vertical-slicing", "delivery", "methodology", "code-review"],
-  "dependencies": ["superpowers@claude-plugins-official"]
+  "keywords": ["tdd", "ddd", "vertical-slicing", "delivery", "methodology", "code-review"]
 }

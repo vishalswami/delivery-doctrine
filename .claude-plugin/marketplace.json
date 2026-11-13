@@ -4,9 +4,6 @@
     "name": "Vishal Swami"
   },
   "description": "Marketplace for the delivery-doctrine plugin.",
-  "allowCrossMarketplaceDependenciesOn": [
-    "claude-plugins-official"
-  ],
   "plugins": [
     {
       "name": "delivery-doctrine",
