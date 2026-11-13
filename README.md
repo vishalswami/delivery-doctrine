@@ -36,6 +36,10 @@ and language profiles for Java, Python, and Go.
   ./...` or several whole packages, bare `pytest` or several test directories; one
   package or file stays allowed, `DOCTRINE_WIDE_TESTS=1` opts out) and
   `while`/`until` … `sleep` poll loops.
+- **Anchor hook** — UserPromptSubmit: once the session's context passes 150k tokens (read
+  from the last reply's token usage), it restates the doctrine's core rules in five lines
+  next to each message, where a long context still attends to them. Nothing below the
+  threshold; `DOCTRINE_ANCHOR_TOKENS` moves it, `DOCTRINE_ANCHOR=0` turns it off.
 - **Keep-awake hook** — SessionStart, macOS only: `caffeinate` tied to the session's
   `claude` process, so the machine does not idle-sleep mid-run (in the author's logs, sleep
   was a third of implementer time). Lid-closed still sleeps unless sleep is disabled
@@ -61,7 +65,7 @@ worktree reads the main checkout's `.local.md`, since the worktree has no copy o
 
 ## Requirements
 
-- `python3` on PATH (used by the guard and profile hooks).
+- `python3` on PATH (used by the guard, profile and anchor hooks).
 - `bash` and `git` (used by the `bin/` commands).
 - `gh`, for team mode's PRs and review threads.
 
@@ -76,7 +80,7 @@ Verify after install (in a fresh session):
 - `/plugin` — delivery-doctrine listed and enabled, with no errors.
 - `/context` — the doctrine text present; the 23 skills and 3 agents listed under
   delivery-doctrine.
-- `/hooks` — the SessionStart and PreToolUse hooks registered.
+- `/hooks` — the SessionStart, UserPromptSubmit and PreToolUse hooks registered.
 - Ask "what gear are we in?" — the session should answer from the doctrine.
 - On a scratch branch, try `git push --force` — the guard must refuse and point to
   `--force-with-lease`.
@@ -125,6 +129,8 @@ hook's blocklist as a brake. Do that only if you accept that risk.
 | `DOCTRINE_WIDE_TESTS=1` | off | prefix one command to allow a wide test run past the guard |
 | `DOCTRINE_KEEP_AWAKE=0` | on | stop the keep-awake hook (macOS) |
 | `DOCTRINE_LID_REMINDER=1` | off | daily reminder when system sleep is not disabled (macOS) |
+| `DOCTRINE_ANCHOR=0` | on | stop the long-session anchor |
+| `DOCTRINE_ANCHOR_TOKENS` | `150000` | context size at which the anchor starts |
 
 Set them in the `env` block of `~/.claude/settings.json`.
 
