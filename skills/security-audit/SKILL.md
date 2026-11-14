@@ -1,552 +1,120 @@
 ---
 name: security-audit
-description: Java security checklist covering OWASP Top 10, input validation, injection prevention, and secure coding. Works with Spring, Quarkus, Jakarta EE, and plain Java. Use when reviewing code security, before releases, or when user asks about vulnerabilities.
+description: Use when reviewing Java code for security, before a release, or when asked about
+  vulnerabilities, OWASP or secure coding — the review checklist mapped to the OWASP Top
+  10:2025 (access control and SSRF, misconfiguration and headers, supply chain, crypto and
+  passwords, injection, XSS and HTML sanitizing, CSRF, secrets, deserialization and XXE,
+  security logging, failing closed). Works for Spring, Quarkus, Jakarta EE and plain Java;
+  Spring Security configuration lives in spring-boot's references/security.md.
 ---
 
 <!-- Adapted from decebals/claude-code-java (MIT); modified for delivery-doctrine. See THIRD_PARTY_NOTICES.md. -->
 
-# Security Audit Skill
+# Security Audit
 
 Examples carry ✅/❌ labels to teach; delivered code carries none.
 
-Security checklist for Java applications based on OWASP Top 10 and secure coding practices.
+The Java security review checklist. How to configure Spring Security (filter chains, resource
+server, CSRF, CORS, headers, password encoder, method security) is
+`delivery-doctrine:spring-boot`'s `references/security.md`; this skill says what must be true.
+Findings rank Critical, Important or Minor in the critic's shape (`delivery-doctrine:critic`).
 
-## When to Use
-- Security code review
-- Before production releases
-- User asks about "security", "vulnerability", "OWASP"
-- Reviewing authentication/authorization code
-- Checking for injection vulnerabilities
+## OWASP Top 10:2025, the Java checks
+| # | Risk | Check |
+|---|------|-------|
+| A01 | Broken Access Control (SSRF folded in) | Deny by default; every object checked against the caller; outbound URLs allowlisted |
+| A02 | Security Misconfiguration | Headers and CSP; debug, dev endpoints and default credentials gone; Actuator exposure minimal |
+| A03 | Software Supply Chain Failures | Dependency scan before the PR; pinned versions; nothing unused |
+| A04 | Cryptographic Failures | Adaptive password hashing; HTTPS enforced; no home-made crypto; no secret in code |
+| A05 | Injection | Parameters, never concatenation: SQL, JPQL, commands, LDAP |
+| A06 | Insecure Design | Rules in the domain, refusals tested; rate limits on auth and costly endpoints |
+| A07 | Authentication Failures | Tokens from an authorization server; sessions rotated; MFA where named |
+| A08 | Software or Data Integrity Failures | No native deserialization of untrusted input; signed artifacts |
+| A09 | Security Logging and Alerting Failures | Security events logged, secrets and personal data never |
+| A10 | Mishandling of Exceptional Conditions | Fail closed; errors leak no internals |
 
----
-
-## OWASP Top 10 Quick Reference
-
-| # | Risk | Java Mitigation |
-|---|------|-----------------|
-| A01 | Broken Access Control | Role-based checks, deny by default |
-| A02 | Cryptographic Failures | Use strong algorithms, no hardcoded secrets |
-| A03 | Injection | Parameterized queries, input validation |
-| A04 | Insecure Design | Threat modeling, secure defaults |
-| A05 | Security Misconfiguration | Disable debug, secure headers |
-| A06 | Vulnerable Components | Dependency scanning, updates |
-| A07 | Authentication Failures | Strong passwords, MFA, session management |
-| A08 | Data Integrity Failures | Verify signatures, secure deserialization |
-| A09 | Logging Failures | Log security events, no sensitive data |
-| A10 | SSRF | Validate URLs, allowlist domains |
-
----
-
-## Input Validation (All Frameworks)
-
-### Bean Validation (JSR 380)
-
-Works in Spring, Quarkus, Jakarta EE, and standalone.
+## Input
+- **Validate at the edge, allowlist the shape.** Bean Validation on the request record
+  (`@NotBlank @Size(max = 50) @Pattern(regexp = "^[a-zA-Z0-9_]+$") String username`, `@Valid` on
+  the parameter), then the domain constructor keeps the invariant (`delivery-doctrine:java-domain`).
 
 ```java
-// ✅ GOOD: Validate at boundary
-public class CreateUserRequest {
-
-    @NotNull(message = "Username is required")
-    @Size(min = 3, max = 50, message = "Username must be 3-50 characters")
-    @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "Username can only contain letters, numbers, underscore")
-    private String username;
-
-    @NotNull
-    @Email(message = "Invalid email format")
-    private String email;
-
-    @NotNull
-    @Size(min = 8, max = 100)
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$",
-             message = "Password must contain uppercase, lowercase, and number")
-    private String password;
-
-    @Min(value = 0, message = "Age cannot be negative")
-    @Max(value = 150, message = "Invalid age")
-    private Integer age;
-}
-
-// ✅ GOOD: @Valid on the controller or resource parameter, so the body arrives validated
-public Response createUser(@Valid CreateUserRequest request) {
-    return userService.create(request);
-}
-```
-
-### Custom Validators
-
-```java
-@Target({ElementType.FIELD})
-@Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy = SafeHtmlValidator.class)
-public @interface SafeHtml {
-    String message() default "Contains unsafe HTML";
-    Class<?>[] groups() default {};
-    Class<? extends Payload>[] payload() default {};
-}
-
-public class SafeHtmlValidator implements ConstraintValidator<SafeHtml, String> {
-
-    private static final Pattern DANGEROUS_PATTERN = Pattern.compile(
-        "<script|javascript:|on\\w+\\s*=", Pattern.CASE_INSENSITIVE
-    );
-
-    @Override
-    public boolean isValid(String value, ConstraintValidatorContext context) {
-        if (value == null) return true;
-        return !DANGEROUS_PATTERN.matcher(value).find();
-    }
-}
-```
-
-### Allowlist vs Blocklist
-
-```java
-// ❌ BAD: Blocklist (attackers find bypasses)
+// ❌
 if (input.contains("<script>")) {
-    throw new ValidationException("Invalid input");
+    throw new InvalidNameException(input);
 }
 
-// ✅ GOOD: Allowlist (only permit known-good)
-private static final Pattern SAFE_NAME = Pattern.compile("^[a-zA-Z\\s'-]{1,100}$");
-
-if (!SAFE_NAME.matcher(input).matches()) {
-    throw new ValidationException("Invalid name format");
-}
+// ✅
+private static final Pattern NAME = Pattern.compile("^[\\p{L} '-]{1,100}$");
 ```
-
----
-
-## SQL Injection Prevention
-
-### JPA/Hibernate (All Frameworks)
+- **Rich text is sanitized by an allowlist policy**, never filtered by a regex of bad tags:
+  OWASP Java HTML Sanitizer (`com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer`).
 
 ```java
-// ✅ GOOD: Parameterized queries
-@Query("SELECT u FROM User u WHERE u.email = :email")
-Optional<User> findByEmail(@Param("email") String email);
+private static final PolicyFactory COMMENT_HTML = Sanitizers.FORMATTING.and(Sanitizers.LINKS);
 
-// ✅ GOOD: Criteria API
-CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-CriteriaQuery<User> query = cb.createQuery(User.class);
-Root<User> user = query.from(User.class);
-query.where(cb.equal(user.get("email"), email));
-
-// ✅ GOOD: Named parameters
-TypedQuery<User> query = entityManager.createQuery(
-    "SELECT u FROM User u WHERE u.status = :status", User.class);
-query.setParameter("status", status);
-
-// ❌ BAD: String concatenation, injectable
-String jpql = "SELECT u FROM User u WHERE u.email = '" + email + "'";
+String safe = COMMENT_HTML.sanitize(untrustedHtml);
 ```
+- **Size limits** on bodies, uploads, collections and strings.
 
-### Native Queries
-
+## Injection
 ```java
-// ✅ GOOD: Parameterized native query
-@Query(value = "SELECT * FROM users WHERE email = ?1", nativeQuery = true)
-User findByEmailNative(String email);
+// ❌
+String jpql = "SELECT o FROM OrderEntity o WHERE o.reference = '" + reference + "'";
 
-// ❌ BAD: Concatenated native query, injectable
-String sql = "SELECT * FROM users WHERE email = '" + email + "'";
+// ✅
+@Query("SELECT o FROM OrderEntity o WHERE o.reference = :reference")
+Optional<OrderEntity> findByReference(@Param("reference") String reference);
 ```
-
-### JDBC (Plain Java)
-
-```java
-// ✅ GOOD: PreparedStatement
-String sql = "SELECT * FROM users WHERE email = ? AND status = ?";
-try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-    stmt.setString(1, email);
-    stmt.setString(2, status);
-    ResultSet rs = stmt.executeQuery();
-}
-
-// ❌ BAD: Statement with concatenation, injectable
-String sql = "SELECT * FROM users WHERE email = '" + email + "'";
-Statement stmt = connection.createStatement();
-stmt.executeQuery(sql);
-```
-
----
-
-## XSS Prevention
-
-### Output Encoding
-
-Use the templating engine's auto-escaping. Thymeleaf's `th:text` escapes by default;
-`th:utext` renders raw HTML, so it takes trusted content only.
-
-```html
-<p th:text="${userInput}">...</p>
-<p th:utext="${trustedHtml}">...</p>
-```
-
-```java
-// ✅ GOOD: Manual encoding when needed
-import org.owasp.encoder.Encode;
-
-String safe = Encode.forHtml(userInput);
-String safeJs = Encode.forJavaScript(userInput);
-String safeUrl = Encode.forUriComponent(userInput);
-```
-
-**Maven dependency for OWASP Encoder:**
-```xml
-<dependency>
-    <groupId>org.owasp.encoder</groupId>
-    <artifactId>encoder</artifactId>
-    <version>1.2.3</version>
-</dependency>
-```
-
-### Content Security Policy
-
-A CSP header blocks inline scripts. In Spring Boot:
-
-```java
-@Configuration
-public class SecurityConfig {
-
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.headers(headers -> headers
-            .contentSecurityPolicy(csp -> csp
-                .policyDirectives("default-src 'self'; script-src 'self'; style-src 'self'")
-            )
-        );
-        return http.build();
-    }
-}
-```
-
-As a Servlet filter, which works everywhere:
-
-```java
-@WebFilter("/*")
-public class SecurityHeadersFilter implements Filter {
-    @Override
-    public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
-            throws IOException, ServletException {
-        HttpServletResponse response = (HttpServletResponse) res;
-        response.setHeader("Content-Security-Policy", "default-src 'self'");
-        response.setHeader("X-Content-Type-Options", "nosniff");
-        response.setHeader("X-Frame-Options", "DENY");
-        chain.doFilter(req, res);
-    }
-}
-```
-
----
-
-## CSRF Protection
-
-### Spring Security
-
-CSRF protection is on by default. A stateless REST API authenticated by JWT can disable it:
-
-```java
-@Bean
-public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
-    http.csrf(csrf -> csrf.disable());
-    return http.build();
-}
-```
-
-A browser app with sessions keeps it on:
-
-```java
-@Bean
-public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
-    http.csrf(csrf -> csrf
-        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-    );
-    return http.build();
-}
-```
-
-### Quarkus
-
-In `application.properties`:
-
-```properties
-quarkus.http.csrf.enabled=true
-quarkus.http.csrf.cookie-name=XSRF-TOKEN
-```
-
----
-
-## Authentication & Authorization
-
-### Password Storage
-
-```java
-// ✅ GOOD: BCrypt (widely supported, strength 12) or Argon2 (recommended for new projects)
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
-
-PasswordEncoder bcrypt = new BCryptPasswordEncoder(12);
-String hash = bcrypt.encode(rawPassword);
-boolean matches = bcrypt.matches(rawPassword, hash);
-
-PasswordEncoder argon2 = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
-String argonHash = argon2.encode(rawPassword);
-
-// ❌ BAD: MD5, SHA1, SHA256 without salt: never for passwords
-String hash = DigestUtils.md5Hex(password);
-```
-
-### Authorization Checks
-
-```java
-// ✅ GOOD: Check authorization at service layer
-@Service
-public class DocumentService {
-
-    public Document getDocument(Long documentId, User currentUser) {
-        Document doc = documentRepository.findById(documentId)
-            .orElseThrow(() -> new NotFoundException("Document not found"));
-
-        if (!doc.getOwnerId().equals(currentUser.getId()) &&
-            !currentUser.hasRole("ADMIN")) {
-            throw new AccessDeniedException("Not authorized to access this document");
-        }
-
-        return doc;
-    }
-}
-
-// ❌ BAD: No authorization check at all; the controller trusts the id it was given
-@GetMapping("/documents/{id}")
-public Document getDocument(@PathVariable Long id) {
-    return documentRepository.findById(id).orElseThrow();
-}
-```
-
-### Spring Security Annotations
-
-```java
-@PreAuthorize("hasRole('ADMIN')")
-public void adminOnly() { }
-
-@PreAuthorize("hasRole('USER') and #userId == authentication.principal.id")
-public void ownDataOnly(Long userId) { }
-
-@PreAuthorize("@authService.canAccess(#documentId, authentication)")
-public Document getDocument(Long documentId) { }
-```
-
----
-
-## Secrets Management
-
-### Never Hardcode Secrets
-
-```java
-// ❌ BAD: Hardcoded secrets
-private static final String API_KEY = "sk-1234567890abcdef";
-private static final String DB_PASSWORD = "admin123";
-
-// ✅ GOOD: Environment variables
-String apiKey = System.getenv("API_KEY");
-
-// ✅ GOOD: External configuration
-@Value("${api.key}")
-private String apiKey;
-
-// ✅ GOOD: Secrets manager, constructor-injected
-String apiKey = secretsManager.getSecret("api-key");
-```
-
-### Configuration Files
-
-```yaml
-# ✅ GOOD: reference environment variables
-spring:
-  datasource:
-    password: ${DB_PASSWORD}
-
-api:
-  key: ${API_KEY}
-
-# ❌ BAD: hardcoded in application.yml, never
-spring:
-  datasource:
-    password: admin123
-```
-
-### .gitignore
-
-Never commit these:
-
-```gitignore
-.env
-*.pem
-*.key
-*credentials*
-*secret*
-application-local.yml
-```
-
----
-
-## Secure Deserialization
-
-### Avoid Java Serialization
-
-```java
-// ❌ DANGEROUS: Java ObjectInputStream on untrusted input, a remote code execution risk
-ObjectInputStream ois = new ObjectInputStream(untrustedInput);
-Object obj = ois.readObject();
-
-// ✅ GOOD: JSON with Jackson into a concrete type
-ObjectMapper mapper = new ObjectMapper();
-mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-User user = mapper.readValue(json, User.class);
-
-// ❌ DANGEROUS: default typing with a permissive validator lets the payload pick the class
-mapper.activateDefaultTyping(
-    LaissezFaireSubTypeValidator.instance,
-    ObjectMapper.DefaultTyping.NON_FINAL
-);
-```
-
-### Jackson Security
-
-```java
-// ✅ Configure Jackson safely: ignore unknown properties, and no class type in JSON (no gadget attacks)
-@Configuration
-public class JacksonConfig {
-
-    @Bean
-    public ObjectMapper objectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.deactivateDefaultTyping();
-
-        return mapper;
-    }
-}
-```
-
----
-
-## Dependency Security
-
-### OWASP Dependency Check
-
-**Maven:**
-```xml
-<plugin>
-    <groupId>org.owasp</groupId>
-    <artifactId>dependency-check-maven</artifactId>
-    <version>9.0.7</version>
-    <executions>
-        <execution>
-            <goals>
-                <goal>check</goal>
-            </goals>
-        </execution>
-    </executions>
-    <configuration>
-        <failBuildOnCVSS>7</failBuildOnCVSS>
-    </configuration>
-</plugin>
-```
-
-`failBuildOnCVSS` 7 fails the build on high severity. Run it; the report lands in
-`target/dependency-check-report.html`:
-```bash
-mvn dependency-check:check
-```
-
-### Keep Dependencies Updated
-
-Check for updates, then update to the latest releases:
-
-```bash
-mvn versions:display-dependency-updates
-mvn versions:use-latest-releases
-```
-
----
-
-## Security Headers
-
-### Recommended Headers
-
-| Header | Value | Purpose |
-|--------|-------|---------|
-| `Content-Security-Policy` | `default-src 'self'` | Prevent XSS |
-| `X-Content-Type-Options` | `nosniff` | Prevent MIME sniffing |
-| `X-Frame-Options` | `DENY` | Prevent clickjacking |
-| `Strict-Transport-Security` | `max-age=31536000` | Force HTTPS |
-
-### Spring Boot Configuration
-
-```java
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.headers(headers -> headers
-        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'"))
-        .frameOptions(frame -> frame.deny())
-        .httpStrictTransportSecurity(hsts -> hsts.maxAgeInSeconds(31536000))
-        .contentTypeOptions(Customizer.withDefaults())
-    );
-    return http.build();
-}
-```
-
----
-
-## Logging Security Events
-
-```java
-// ✅ Log security-relevant events
-log.info("User login successful", kv("userId", userId), kv("ip", clientIp));
-log.warn("Failed login attempt", kv("username", username), kv("ip", clientIp), kv("attempt", attemptCount));
-log.warn("Access denied", kv("userId", userId), kv("resource", resourceId), kv("action", action));
-log.error("Authentication failure", kv("reason", reason), kv("ip", clientIp));
-
-// ❌ NEVER log sensitive data: passwords, card numbers, whole request bodies
-log.info("Login: user={}, password={}", username, password);
-log.debug("Request body: {}", requestWithCreditCard);
-```
-
----
-
-## Security Checklist
-
-### Code Review
-
-- [ ] Input validated with allowlist patterns
-- [ ] SQL queries use parameters (no concatenation)
-- [ ] Output encoded for context (HTML, JS, URL)
-- [ ] Authorization checked at service layer
-- [ ] No hardcoded secrets
-- [ ] Passwords hashed with BCrypt/Argon2
-- [ ] Sensitive data not logged
-- [ ] CSRF protection enabled (for browser apps)
-
-### Configuration
-
-- [ ] HTTPS enforced
-- [ ] Security headers configured
-- [ ] Debug/dev features disabled in production
-- [ ] Default credentials changed
-- [ ] Error messages don't leak internal details
-
-### Dependencies
-
-- [ ] No known vulnerabilities (OWASP check)
-- [ ] Dependencies up to date
-- [ ] Unnecessary dependencies removed
-
----
-
-## Related Skills
-
-- `delivery-doctrine:code-quality` - general code review
-- `delivery-doctrine:concurrency-review` - thread-safety review
-- `delivery-doctrine:readable-java-style` - naming and comment discipline
+- Same for native queries, JDBC (`PreparedStatement`), Criteria and `JdbcClient` (`.param(...)`).
+  A varying column or sort field comes from an allowlist in code, never from the request.
+- Commands: `new ProcessBuilder("git", "log", ref)`, never `sh -c` with input in the string.
+
+## Output, XSS and headers
+- Templates escape (Thymeleaf `th:text`; `th:utext` only for sanitized HTML). Manual encoding:
+  OWASP Java Encoder (`org.owasp.encoder:encoder` 1.5.0+), `Encode.forHtml`, `forJavaScript`,
+  `forUriComponent`, each for its one context; the caller adds quotes; never `forJavaScript` for JSON.
+- Headers on every response: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+  `Strict-Transport-Security` on HTTPS, and a `Content-Security-Policy` wherever HTML is served.
+  Spring Security writes all but the CSP by default; without it, one servlet filter sets them.
+
+## CSRF
+CSRF protection stays on wherever a browser sends credentials automatically (a session cookie, a
+custom auth cookie, HTTP basic), stateless or not. Only an API used by non-browser clients with
+bearer tokens may turn it off. Spring: `csrf.spa()` for a single-page app (security.md); Quarkus:
+the `quarkus-rest-csrf` extension (`quarkus.rest-csrf.*`).
+
+## Authentication and access
+- **Object-level checks.** A request that names an ID is checked against the caller before use:
+  `readDocument.asOwner(documentId, callerId)`, never `documents.byId(id)` for whatever ID
+  arrived. Loading by the given ID alone is an IDOR (A01, Critical).
+- **Passwords** hashed adaptively: bcrypt or Argon2 through a delegating encoder; MD5, SHA-1 or a
+  bare SHA-256 is Critical. Comparison of secrets in constant time (`MessageDigest.isEqual`).
+- **Tokens** validated (signature, issuer, audience, expiry) by the framework, not hand-parsed.
+- **Outbound calls** built from user input (webhooks, image URLs) resolve against an allowlist of
+  hosts and schemes, and do not follow redirects into internal addresses (SSRF).
+
+## Secrets
+Never in code, `application.yml` or a committed `.env`: `password: ${DB_PASSWORD}` from the
+environment or a secret manager, bound into `@ConfigurationProperties`. `.gitignore` carries `.env`,
+`*.pem`, `*.key`, `*credentials*`, `application-local.yml`; a secret ever committed is rotated.
+
+## Deserialization and XML
+- No `ObjectInputStream.readObject()` on untrusted bytes (remote code execution, Critical); if a
+  legacy protocol forces it, an `ObjectInputFilter` allowlists the classes.
+- Jackson binds into concrete record types. Never default typing (`activateDefaultTyping`) or
+  `@JsonTypeInfo(use = Id.CLASS)` on input: the payload would pick the class. Polymorphism is
+  `@JsonTypeInfo(use = Id.NAME)` with listed subtypes.
+- XML parsers refuse DOCTYPEs (`http://apache.org/xml/features/disallow-doctype-decl` set true),
+  so no external entities (XXE).
+
+## Logging and failures
+- Log logins, failures, access denied and privilege changes as structured fields
+  (`kv("userId", id)`); never passwords, tokens, card numbers or whole request bodies.
+- Fail closed: an exception in an authorization check denies; a 500 answers with a generic
+  `ProblemDetail` and logs the cause once.
+
+## Dependencies
+Once before the PR, not per iteration: `mvn org.owasp:dependency-check-maven:check` (an NVD API
+key speeds it up; `failBuildOnCVSS` 7 fails on high severity), or the house's scanner;
+`mvn versions:display-dependency-updates` for what is behind; unused dependencies removed.
