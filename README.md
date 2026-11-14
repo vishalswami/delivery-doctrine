@@ -230,7 +230,7 @@ claude plugin eval . --scaffold --runs 3
 
 The cases in [`evals/`](evals/) check that the doctrine is injected, that a new feature names a
 gear and starts the grill, that the right skills load for a flaky test, review comments, a small
-change or a Go or Python change, and that the agent never claims done without evidence.
+change or a Java, Go or Python change, and that the agent never claims done without evidence.
 
 To release: bump `version` in `.claude-plugin/plugin.json` and push to `main`; the marketplace
 tracks the branch.
