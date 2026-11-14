@@ -72,8 +72,7 @@ is Critical.
 ## Pairing
 - Invoked by `critic` Stage 2. Java specifics: `delivery-doctrine:java-domain` (domain types,
   layout, wiring), `delivery-doctrine:spring-boot`, `delivery-doctrine:code-quality`,
-  `delivery-doctrine:readable-java-style`. The layered examples in `delivery-doctrine:spring-boot` / `delivery-doctrine:code-quality` are
-  illustrative Spring wiring, not the mandated architecture — architecture is decided
-  here, per context.
+  `delivery-doctrine:readable-java-style`. `delivery-doctrine:spring-boot` shows Spring wiring
+  of that layout, not a mandated architecture — architecture is decided here, per context.
 - Go: `delivery-doctrine:go-style` (Domain types, Layout and wiring). Python:
   `delivery-doctrine:python-style` (same sections).
