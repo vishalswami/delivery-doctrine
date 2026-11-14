@@ -2,6 +2,23 @@
 
 # Web Layer - Controllers & REST APIs
 
+## HTTP contract
+
+| Verb | For | Idempotent | Success status |
+|------|-----|------------|----------------|
+| GET | Read; never changes state | Yes | 200 |
+| POST | Create, or a command (`/orders/{id}/cancellation`) | No | 201 with `Location`, or 200/202 |
+| PUT | Replace the whole resource | Yes | 200, or 204 |
+| PATCH | Partial update | Not by default | 200, or 204 |
+| DELETE | Remove | Yes | 204 |
+
+Failures: 400 malformed or invalid input, 404 unknown resource, 409 a state conflict or a
+duplicate, 422 only where the house uses it for domain refusals, 500 the unexpected, logged
+once. A search with many criteria stays a `GET` with query parameters until it no longer fits a
+URL. Follow the versioning scheme the house or the requirements name and add none by default: a
+`/v1` nobody asked for is invented structure, and how to ship a breaking change is the API
+owners' decision.
+
 ## REST Controller Pattern
 
 ```java

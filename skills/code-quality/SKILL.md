@@ -1,340 +1,120 @@
 ---
 name: code-quality
-description: Comprehensive code review for Java - clean code principles, API contracts, null safety, exception handling, and performance. Use when user says "review code", "refactor", "check API", or before merging changes.
+description: Use when reviewing or refactoring Java code, or before merging a Java change —
+  the review checklist for null safety, exception handling, resource management, naming,
+  duplication and speculative abstraction, query performance (N+1, unbounded reads), and the
+  API contract at the edge, with findings ranked Critical, Important or Minor. Triggers on
+  "review code", "code review", "check this PR", "refactor", "clean this up", "check API".
 ---
 
 <!-- Adapted from piomin/claude-ai-spring-boot (Apache-2.0); modified for delivery-doctrine. See THIRD_PARTY_NOTICES.md. -->
 
-# Code Quality Review Skill
+# Code Quality Review
 
 Examples carry ✅/❌ labels to teach; delivered code carries none.
 
-Systematic code review combining clean code principles, API design, and Java best practices.
+The Java review checklist. It owns null safety, exceptions, resources, naming and performance.
+It defers on method decomposition and comments to `delivery-doctrine:readable-java-style` (no
+comments; a long but clear method is not a smell), on domain types and transactions to
+`delivery-doctrine:java-domain`, and on HTTP depth to `delivery-doctrine:spring-boot`'s
+`references/web.md`. The architecture itself is `delivery-doctrine:ddd-hexagonal-reviewer`'s call.
 
-> Defers to `delivery-doctrine:readable-java-style` on method decomposition and comments: no comments
-> (the doctrine's hard rule), and don't reflexively extract — a long-but-clear method is not
-> a smell. This skill owns null safety, API contracts, exceptions, and performance.
+Read the change for intent first, house names and structure before these rules; then walk only
+the categories it touches and report as below.
 
-## When to Use
-- "review this code" / "code review" / "check this PR"
-- "refactor" / "clean this code" / "improve readability"
-- "review API" / "check endpoints" / "REST review"
-- Before merging PR or releasing API changes
+## Duplication and speculative structure
+- **One rule, one keeper.** The same validation in two services is one value object whose
+  compact constructor keeps the invariant (`record Email(String value)`, per `java-domain`),
+  not a shared `EmailValidator` both remember to call.
+- **No abstraction without a second case.** A factory interface with one implementation, a
+  `ConfigurableXFactoryProvider`, an option nothing sets: flag it. Build it when the second
+  case arrives.
+- **Magic values get a name** (`SESSION_TTL = Duration.ofDays(1)`, not `86400`).
 
-## Review Strategy
+## Null safety
+Decide the contract first: is absence an error, or a modelled outcome? Then make the code say so.
 
-1. **Quick scan** - Understand intent, identify scope
-2. **Checklist pass** - Apply relevant categories below
-3. **Summary** - List findings by severity (Critical → Minor → Good)
-
----
-
-## Clean Code Principles
-
-### DRY - Don't Repeat Yourself
-
-**Violation:**
 ```java
-// ❌ Duplicated validation logic
-public void createUser(UserRequest req) {
-    if (req.getEmail() == null || !req.getEmail().contains("@")) {
-        throw new ValidationException("Invalid email");
+// ❌
+String name = Optional.ofNullable(user.name()).map(String::toUpperCase).orElse("");
+
+// ✅
+public record Customer(CustomerId id, String name) {
+    public Customer {
+        Objects.requireNonNull(id);
+        Objects.requireNonNull(name);
     }
 }
 
-public void updateUser(UserRequest req) {
-    if (req.getEmail() == null || !req.getEmail().contains("@")) {
-        throw new ValidationException("Invalid email");
-    }
-}
+// ✅
+Optional<Customer> findById(CustomerId id);
 ```
+- A required value is checked once, where it enters (a compact constructor, the edge DTO's
+  `@NotNull`), so the rest of the code never re-checks it. A silent default (`""`, `0`,
+  `List.of()` for "unknown") hides the bug the null was reporting.
+- Flags: chained calls through values that can be absent; `Optional.get()` without a proven
+  presence (use `orElseThrow`); a method returning `null` for "none" instead of `Optional` or an
+  empty collection; `Optional` as a field or parameter; nullness on a public API left implicit
+  where the house uses annotations (JSpecify `@Nullable` in Spring Framework 7 code).
 
-**Fix:**
+## Exceptions
 ```java
-// ✅ Single source of truth
-public class EmailValidator {
-    public void validate(String email) {
-        if (email == null || !email.contains("@")) {
-            throw new ValidationException("Invalid email");
-        }
-    }
-}
-```
-
-### KISS - Keep It Simple
-
-**Violation:**
-```java
-// ❌ Over-engineered
-public interface UserFactory {
-    User createUser();
-}
-public class ConcreteUserFactory implements UserFactory {
-    public User createUser() { return new User(); }
-}
-```
-
-**Fix:**
-```java
-// ✅ Simple
-public User createUser() { return new User(); }
-```
-
-### YAGNI - You Aren't Gonna Need It
-
-**Violation:**
-```java
-// ❌ Premature abstraction
-public class ConfigurableUserServiceFactoryProvider { }
-```
-
-**Fix:**
-```java
-// ✅ Implement when actually needed
-public class UserService { }
-```
-
----
-
-## API Contract Review
-
-### HTTP Verb Semantics
-
-| Verb | Use For | Idempotent | Safe |
-|------|---------|------------|------|
-| GET | Retrieve resource | Yes | Yes |
-| POST | Create new resource | No | No |
-| PUT | Replace entire resource | Yes | No |
-| PATCH | Partial update | No* | No |
-| DELETE | Remove resource | Yes | No |
-
-**Common Mistakes:**
-```java
-// ❌ POST for retrieval
-@PostMapping("/users/search")
-public List<User> search(@RequestBody SearchCriteria criteria) { }
-
-// ✅ GET with query params
-@GetMapping("/users")
-public List<User> search(@RequestParam String name) { }
-
-// ❌ GET for state change
-@GetMapping("/users/{id}/activate")
-public void activate(@PathVariable Long id) { }
-
-// ✅ POST/PATCH for state change
-@PostMapping("/users/{id}/activate")
-public ResponseEntity<Void> activate(@PathVariable Long id) { }
-```
-
-### API Versioning
-
-Follow the versioning scheme the house or the requirements name; add none by default. A
-`/v1` segment nobody asked for is invented structure: how to ship a breaking change is the
-API owners' decision, not a default path prefix.
-
-### Response Status Codes
-
-| Code | Use Case | Example |
-|------|----------|---------|
-| 200 OK | Successful GET/PUT/PATCH | Found resource |
-| 201 Created | Successful POST | New resource created |
-| 204 No Content | Successful DELETE | Resource deleted |
-| 400 Bad Request | Validation failure | Invalid input |
-| 404 Not Found | Resource doesn't exist | User not found |
-| 409 Conflict | State conflict | Duplicate email |
-| 500 Server Error | Unexpected error | Database down |
-
-### DTO vs Entity Exposure
-
-```java
-// ❌ Exposing the JPA entity: leaks internals, risks N+1
-@GetMapping("/{id}")
-public User getUser(@PathVariable Long id) {
-    return userRepository.findById(id).get();
-}
-
-// ✅ Return a DTO
-@GetMapping("/{id}")
-public UserResponse getUser(@PathVariable Long id) {
-    return userService.findById(id);
-}
-```
-
----
-
-## Java Code Review Checklist
-
-### Null Safety
-
-**Check for:**
-```java
-// ❌ NPE risk
-String name = user.getName().toUpperCase();
-
-// ✅ Safe with Optional
-String name = Optional.ofNullable(user.getName())
-    .map(String::toUpperCase)
-    .orElse("");
-
-// ✅ Safe with early return
-if (user.getName() == null) return "";
-return user.getName().toUpperCase();
-```
-
-**Flags:**
-- Chained calls without null checks
-- `Optional.get()` without `isPresent()`
-- Returning `null` instead of `Optional` or empty collection
-- Missing `@Nullable`/`@NonNull` on public APIs
-
-### Exception Handling
-
-**Check for:**
-```java
-// ❌ Swallowing exceptions: a silent failure
-try {
-    process();
-} catch (Exception e) { }
-
-// ❌ Losing the stack trace and its context
+// ❌
 catch (IOException e) {
     throw new RuntimeException(e.getMessage());
 }
 
-// ✅ Rethrow with the cause; the handler that catches it logs it, once
+// ✅
 catch (IOException e) {
-    throw new ProcessingException("File processing failed: " + filename, e);
+    throw new StatementImportException(file, e);
 }
 ```
+- Flags: an empty `catch`; catching `Exception` or `Throwable` outside the one edge handler; a
+  new exception without the cause; log-and-rethrow (the failure logged twice: log once, where
+  it is handled); a checked exception wrapped in a generic `RuntimeException` rather than the
+  context's domain exception (`java-domain`).
 
-**Flags:**
-- Empty catch blocks
-- Catching `Exception` or `Throwable` (too broad)
-- Logging and rethrowing: the same failure logged twice; log once, where it is handled
-- Creating new exception without original cause
+## Resources
+Anything `AutoCloseable` (streams, JDBC objects, clients, executors on Java 19+) opens in
+try-with-resources, so it closes on every path; a manual `close()` after the work leaks when
+the work throws.
 
-### Resource Management
+## Naming
+Names say intent: `findActiveCustomersByRegion`, `isWithinCreditLimit`, `activate`; never
+`get(String s)`, `check`, `doStuff`, `data2`. One casing convention per kind; a name that needs
+a comment to explain it gets renamed (`readable-java-style`).
 
-**Check for:**
+## Performance
 ```java
-// ❌ Resource leak: close() never runs if read() throws
-FileInputStream fis = new FileInputStream(file);
-String content = read(fis);
-fis.close();
-
-// ✅ Try-with-resources closes it on every path
-try (FileInputStream fis = new FileInputStream(file)) {
-    return read(fis);
-}
-```
-
-### Transaction Boundaries
-
-**Check for:**
-```java
-// ❌ Missing transaction: two saves, two transactions
-public void createUser(UserRequest request) {
-    User user = new User();
-    userRepository.save(user);
-    roleRepository.save(new Role(user));
+// ❌
+for (Customer customer : customers) {
+    orders.addAll(orderRepository.findByCustomerId(customer.id()));
 }
 
-// ✅ One atomic transaction
-@Transactional
-public void createUser(UserRequest request) {
-    User user = new User();
-    userRepository.save(user);
-    roleRepository.save(new Role(user));
-}
+// ✅
+@EntityGraph(attributePaths = "lines")
+List<OrderEntity> findByCustomerIdIn(Collection<UUID> customerIds);
 ```
+- Flags: a query per loop iteration (N+1: fetch join, `@EntityGraph` or one `IN` query); an
+  unbounded `findAll()` on a table that grows (page or stream it); a filter column with no
+  index; a remote call inside a transaction (`java-domain`). Fetch and query depth:
+  `spring-boot`'s `references/data.md`.
 
-### Naming Conventions
+## Transactions and the API contract
+- **One unit of work per port call**, owned by the persistence adapter; several writes that
+  must commit together go through one adapter method or the `Transactions` port
+  (`java-domain`). `@Transactional` on a controller or a domain type is a finding.
+- **The edge contract**: verbs keep their semantics (no `GET` that changes state, no `POST` to
+  read), statuses say the outcome (201 with `Location`, 204, 404, 409), errors leave as
+  `ProblemDetail`, request and response records never JPA entities, and no API version nobody
+  asked for. Depth: `spring-boot`'s `references/web.md`.
 
-**Good:**
-```java
-// ✅ Clear intent
-public List<User> findActiveUsersByRole(String role) { }
-public boolean isEmailValid(String email) { }
-public void activateUser(Long userId) { }
-```
-
-**Bad:**
-```java
-// ❌ Unclear
-public List<User> get(String s) { }
-public boolean check(String str) { }
-public void doStuff(Long id) { }
-```
-
-### Performance
-
-**Check for:**
-```java
-// ❌ N+1 query problem: one query per user
-List<User> users = userRepository.findAll();
-for (User user : users) {
-    List<Order> orders = orderRepository.findByUserId(user.getId());
-}
-
-// ✅ Join fetch
-@Query("SELECT u FROM User u LEFT JOIN FETCH u.orders")
-List<User> findAllWithOrders();
-
-// ❌ Loading all data, possibly millions of rows
-List<User> allUsers = userRepository.findAll();
-
-// ✅ Pagination
-Page<User> users = userRepository.findAll(PageRequest.of(0, 20));
-```
-
----
-
-## Review Output Format
-
-```markdown
-## Code Review: [Component/Feature Name]
-
-### Critical Issues
-- **Null safety violation** (UserService.java:42) - `user.getName().toUpperCase()` can NPE. Use Optional or null check.
-- **Resource leak** (FileHandler.java:15) - FileInputStream not closed. Use try-with-resources.
-
-### Important Improvements
-- **API design** - POST used for idempotent update (UserController.java:28). Use PUT instead.
-- **Transaction missing** - Multi-step operation needs @Transactional (OrderService.java:56).
-- **N+1 query** - Loop fetches orders individually (line 89). Use JOIN FETCH.
-
-### Code Smells
-- **Long method** - extractUserData() is 80 lines. Extract only for real duplication or a genuinely complex sub-problem (see `delivery-doctrine:readable-java-style`); a long-but-clear method is not itself a smell.
-- **Magic number** - Use named constant instead of `86400` (line 123).
-- **Inconsistent naming** - Mix of camelCase and snake_case in variables.
-
-### Good Practices Observed
-- ✅ Constructor injection used throughout
-- ✅ DTOs properly separate from entities
-- ✅ Comprehensive validation on all endpoints
-- ✅ Each behavior pinned by a given_when_then test
-```
-
----
-
-## Quick Reference Flags
-
-| Category | Red Flags |
-|----------|-----------|
-| **Null Safety** | Chained calls, Optional.get(), returning null |
-| **Exceptions** | Empty catch, broad catch, lost stack trace, log-and-rethrow |
-| **Resources** | Manual close(), missing try-with-resources |
-| **API Design** | Wrong HTTP verb, entity exposure |
-| **Transactions** | Multi-step writes without @Transactional |
-| **Performance** | N+1 queries, loading all data, missing indexes |
-| **Clean Code** | Code duplication, magic numbers, unclear names |
-
----
-
-## Severity Levels
-
-- **Critical** - Security, data loss, crash risk → Must fix before merge
-- **Important** - Performance, maintainability, correctness → Should fix
-- **Code Smell** - Style, complexity, minor issues → Nice to have
-- **Good** - Positive feedback to reinforce good practices
+## Report
+Use the critic's shape (`delivery-doctrine:critic`, Output): a verdict, then findings most
+severe first, each with file:line, the defect, what it breaks and the fix, then what to keep.
+- **Critical**: security, data loss or a crash path; blocks the merge.
+- **Important**: wrong or brittle behaviour, a swallowed error, copied logic, an N+1 on a hot
+  path; fixed before the merge.
+- **Minor**: naming, a magic value, polish; the author's call.
+- **Keep**: what is done well (constructor injection, records at the edge, a behaviour pinned
+  by a given_when_then test), so the fix pass leaves it alone.
