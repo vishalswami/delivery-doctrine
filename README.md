@@ -222,18 +222,28 @@ Then restart your sessions; a running session keeps the version it started with.
 
 ## Contributing
 
-Skills and agents are plain Markdown. Behaviour is checked with Claude Code's plugin evals:
+Issues and pull requests are welcome.
 
-```bash
-claude plugin eval . --scaffold --runs 3
-```
+1. Fork the repository and work on a branch.
+2. Keep to its conventions: no comments in code examples, each `SKILL.md` under 120 lines with
+   depth in `references/`, plain wording, and credit in `THIRD_PARTY_NOTICES.md` for anything
+   adapted from elsewhere.
+3. Run the evals and add a case when your change alters behaviour:
 
-The cases in [`evals/`](evals/) check that the doctrine is injected, that a new feature names a
-gear and starts the grill, that the right skills load for a flaky test, review comments, a small
-change or a Java, Go or Python change, and that the agent never claims done without evidence.
+   ```bash
+   claude plugin eval . --scaffold --runs 3
+   ```
 
-To release: bump `version` in `.claude-plugin/plugin.json` and push to `main`; the marketplace
-tracks the branch.
+   The cases in [`evals/`](evals/) check that the doctrine is injected, that a new feature names
+   a gear and starts the grill, that the right skills load for a flaky test, review comments, a
+   small change or a Java, Go or Python change, and that the agent never claims done without
+   evidence.
+4. Open a pull request that says what changed and why.
+
+### Releasing (maintainer)
+
+Bump `version` in `.claude-plugin/plugin.json` and merge to `main`. The marketplace follows
+`main`, so users get the release with `claude plugin update`.
 
 ## License and credits
 
