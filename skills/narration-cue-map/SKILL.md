@@ -33,7 +33,7 @@ Review and narrate the *previous* slice (N-1) while N is being built — paralle
 talking costs no clock. Approve changes as they land (the permission allow-list keeps
 this fast). Explain the code as you approve it; this doubles as your read-the-code beat.
 
-For a live session, run the implementer inline (see CLAUDE.md's execution rule) so its
+For a live session, run the implementer inline (the doctrine's execution rule) so its
 replies to your comments are visible live and permissions don't re-ask; keep the critic
 a subagent.
 

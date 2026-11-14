@@ -151,8 +151,8 @@ replaces the `{"detail": ...}` shape; the mapping stays in one place.
 
 ## Message consumer
 
-An inbound adapter like the handler, in its own module (`orders/kafka.py`, or the house's
-`consumers`), holding the concrete service.
+An inbound adapter like the handler, in its own module (`orders/messaging.py`, or where the
+house puts consumers), holding the concrete service.
 
 - **Decode into a DTO, then the domain constructor.** A payload that fails either is poison:
   skip and count it, or dead-letter it where the house has a DLQ; never retry it.
@@ -160,6 +160,7 @@ An inbound adapter like the handler, in its own module (`orders/kafka.py`, or th
   (event ID as request ID), enforced by a unique constraint and `ON CONFLICT DO NOTHING`; a
   redelivery is a no-op, not an error.
 - **Classify once**: an `OrderError` is an outcome (log, move on); anything else propagates so
-  the client library retries or holds the offset, per its contract.
-- **Publishing** writes an outbox row in the same transaction as the state change; a relay
-  sends it. No broker call inside a database transaction.
+  the client library redelivers it, per its contract.
+- **Publishing** never calls the broker inside a database transaction. Publish after the
+  commit; where a lost event is not acceptable, write an outbox row in the same transaction and
+  let a relay send it.

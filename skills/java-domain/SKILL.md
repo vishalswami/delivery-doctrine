@@ -55,7 +55,7 @@ public record Money(BigDecimal amount, Currency currency) {
 ## Layout and wiring
 - **Package by feature.** `com.acme.orders` holds the domain types, its ports and the use-case
   services; each adapter is a subpackage named for its mechanism (`orders.web`,
-  `orders.persistence`, `orders.kafka`), or sits where the house puts adapters.
+  `orders.persistence`, `orders.messaging`), or sits where the house puts adapters.
 - **Ports are plain interfaces in the domain package**, named for the domain's need
   (`OrderStore`, `PaymentGateway`) and implemented in an adapter. An inbound interface per use
   case where hexagonal is the house style (`delivery-doctrine:ddd-hexagonal-reviewer`).

@@ -18,7 +18,7 @@ type Store interface {
 ```
 
 One port call is one unit of work, and the adapter method owns its transaction. A method that
-writes twice (the order and its outbox row) opens and commits it; the deferred `Rollback` is a
+writes twice (the order and its lines) opens and commits it; the deferred `Rollback` is a
 no-op after `Commit` (it returns `sql.ErrTxDone`), which is why its error is dropped.
 
 ```go
@@ -34,8 +34,10 @@ func (s *Store) Place(ctx context.Context, o order.Order) error {
 	if _, err := tx.ExecContext(ctx, insertOrder, o.ID(), o.Customer(), o.Total().Cents()); err != nil {
 		return fmt.Errorf("inserting order %s: %w", o.ID(), err)
 	}
-	if _, err := tx.ExecContext(ctx, insertOutbox, "order_placed", o.ID()); err != nil {
-		return fmt.Errorf("writing order_placed for %s: %w", o.ID(), err)
+	for _, l := range o.Lines() {
+		if _, err := tx.ExecContext(ctx, insertLine, o.ID(), l.SKU(), l.Cents()); err != nil {
+			return fmt.Errorf("inserting line %s of order %s: %w", l.SKU(), o.ID(), err)
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("committing order %s: %w", o.ID(), err)
@@ -168,8 +170,8 @@ The server sets `ReadHeaderTimeout` (gosec flags its absence) and shuts down on
 
 ## Message consumer
 
-An inbound adapter like the handler, in its own subpackage (`order/kafka`, or the house's
-`consumers`), named without stutter (`kafka.Consumer`, not `kafka.OrderConsumer`).
+An inbound adapter like the handler, in its own subpackage named for the house's broker or
+`order/messaging`, named without stutter (`messaging.Consumer`, not `messaging.OrderConsumer`).
 
 ```go
 func (c *Consumer) Handle(ctx context.Context, payload []byte) error {
@@ -198,7 +200,8 @@ func (c *Consumer) Handle(ctx context.Context, payload []byte) error {
   (event ID as request ID), enforced by a unique constraint and `ON CONFLICT DO NOTHING` in the
   store; a redelivery is a no-op, not an error.
 - **Classify once**: a refusal is an outcome (log, move on); anything else returns an error so
-  the framework retries or holds the offset, per its contract.
-- **Publishing** writes an outbox row in the same transaction as the state change (`Place`
-  above); a relay sends it. No broker call inside a database transaction.
+  the client library redelivers it, per its contract.
+- **Publishing** never calls the broker inside a database transaction. Publish after the
+  commit; where a lost event is not acceptable, write an outbox row in the same transaction and
+  let a relay send it.
 - Transaction scope per message or per batch is the house's call; follow its record.

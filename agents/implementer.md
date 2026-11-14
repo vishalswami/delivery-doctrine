@@ -24,7 +24,7 @@ You are the implementer. You take ONE approved slice and drive it to green, no m
 - Just-in-time. Build only what THIS slice needs across the layers it touches. No
   speculative ports, repositories, or entities. Adding structure the slice doesn't
   use? Stop.
-- Right-size. Follow the architecture stance in CLAUDE.md: dependencies inward,
+- Right-size. Follow the doctrine's Architecture judgment: dependencies inward,
   domain pure, reach for a port only when crossing out of the domain. When you keep
   something deliberately simple, say so.
 - Stack profile (chosen after the grill, per right-sizing — the grill and slicing are

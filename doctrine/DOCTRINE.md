@@ -100,7 +100,7 @@ implementer fixes; a few passes only where it earns it.
   (domain, review, mechanical, analysis, retrieval) or an agent (implementer, critic,
   plan-critic) to a model alias (opus, sonnet, haiku, fable). An agent entry covers every
   dispatch of that agent; otherwise the task kind, then the tier.
-- **Domain code** (services, ports, policy, dispatch, consumer logic) **and every
+- **Domain code** (services, ports, policies, message handlers) **and every
   review** (critic, plan-critic, any code review) → deep.
 - **Mechanical code** — migrations, regenerated API/client code, wiring (e.g. main.go),
   a table test over declared constants, rebasing or restacking branches (rebase, regenerate,

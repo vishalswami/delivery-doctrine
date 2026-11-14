@@ -1,13 +1,17 @@
 ---
 name: gwt-testing
-description: Use when writing or reviewing JUnit 5 tests in Java — the Java/JUnit specialization of test-first (GWT structure, given_when_then naming, zero comments).
+description: Use when writing or reviewing JUnit Jupiter tests in Java — the Java/JUnit specialization of test-first (GWT structure, given_when_then naming, zero comments).
 ---
 
-# Given-When-Then Testing (JUnit 5)
+# Given-When-Then Testing (JUnit Jupiter)
 
-The Java/JUnit 5 specialization of `delivery-doctrine:test-first`. Everything in that skill
+The Java/JUnit specialization of `delivery-doctrine:test-first`. Everything in that skill
 applies unchanged — blank-line phase structure, `given<Context>_when<Action>_then<Outcome>`
 naming, exactly one act per test, zero comments. This file adds only the JUnit specifics.
+
+Tool defaults are the common community ones: JUnit Jupiter (6, as Boot 4.1 manages; 5 reads
+the same), AssertJ, Mockito only where the interaction is the contract, Testcontainers for real
+infrastructure. A house rule that picks others wins.
 
 ## JUnit shape
 ```java

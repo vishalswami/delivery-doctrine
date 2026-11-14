@@ -22,7 +22,7 @@ An agent entry covers every dispatch of that agent; otherwise task kind, then ti
 - Size budgets: <only if different from close-out's: context file 200 lines, plan 150, design 300, deferred 100>
 
 ## Hot files (wave-mates must not both edit)
-- <e.g. migrations/atlas.sum — one migration per wave>
+- <e.g. db/migrations/ — one migration per wave>
 - <e.g. cmd/server/main.go — registration points pre-created in the skeleton wave>
 - <e.g. openapi/ and generated clients — regenerate, never hand-merge>
 

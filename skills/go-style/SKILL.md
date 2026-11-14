@@ -45,7 +45,7 @@ conform to the house's names, introduce what it lacks, name a plainly bad house 
 - **On a hang:** send SIGQUIT (`kill -QUIT <pid>`) — the runtime dumps all goroutine
   stacks (see `delivery-doctrine:execution-hygiene`).
 - **Names:** packages short, lowercase, no stutter — `order.Service`, not `order.OrderService`,
-  and `consumers.Bankruptcy`, not `consumers.BankruptcyConsumer`. Accessors carry no `Get`
+  and `httpapi.Handler`, not `httpapi.OrderHandler`. Accessors carry no `Get`
   prefix (`o.Total()`).
 
 ## Domain types
@@ -66,7 +66,7 @@ conform to the house's names, introduce what it lacks, name a plainly bad house 
   enforcing the same rule atomically (`UPDATE … WHERE released_at IS NULL`, so no
   read-update-persist race) is right; the method mirrors it and one test pins the two together.
 - **One command type per use case**, no mode flags: a request the service must re-classify
-  (`if isOperator(req.Source)`) is several types sharing one struct.
+  (`if req.PlacedByStaff`) is several types sharing one struct.
 - **Derived identity is data.** A parent ID or a provenance kind is a field or column, not a
   string prefix decoded elsewhere; if an encoding is forced, one type encodes and decodes it.
 - **Domain errors.** `var ErrOrderNotFound = errors.New("order not found")` for conditions

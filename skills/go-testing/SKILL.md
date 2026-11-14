@@ -31,7 +31,8 @@ share mutable state; loop variables are per-iteration, so no `tt := tt` copy.
   `fakeStore` that records what it was given as data (`placed []order.Order`). Assert the
   outcome (what was stored, what came back), never a call count.
 - **mockery where the interaction is the contract** (the message sent is the behavior) or the
-  port is wide or owned by a framework. v3, house-pinned: interfaces declared in
+  port is wide or owned by a framework (a house on another generator, such as gomock, keeps
+  it). v3, house-pinned: interfaces declared in
   `.mockery.yml`, one `mockery` run regenerates all; the v2 `--name` flag is removed. Never
   mock what you own inside the unit.
 - **A contract test keeps the fake honest.** A fake shared across packages lives in a helper
