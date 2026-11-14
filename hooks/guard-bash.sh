@@ -143,11 +143,11 @@ reason = hygiene(joined)
 if reason:
     rules.append((r'', reason))
 
-checked = unquoted(joined)
-if recursive_force_rm(checked):
+forms = [unquoted(joined), unquoted(re.sub(r'\\\n', ' ', cmd))]
+if any(recursive_force_rm(form) for form in forms):
     rules.insert(0, (r'', "recursive force delete (rm -rf) is blocked; delete specific paths deliberately"))
 for pattern, reason in rules:
-    if re.search(pattern, checked if pattern else cmd):
+    if (any(re.search(pattern, form) for form in forms) if pattern else True):
         print(json.dumps({
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
