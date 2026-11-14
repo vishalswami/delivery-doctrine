@@ -23,7 +23,7 @@ The wave gate waits only on the user.
 - **Team** (a repo with a PR workflow): a branch per slice off the house base branch, one PR
   per slice, the house conventions for branch names, messages, PR titles and labels.
 - Both: one commit per green slice (its tests and integration green; never red or broken),
-  named for the slice and its behavior ("slice 3: reject expired JWT with 401"), never "wip".
+  saying what changed ("Reject expired JWT with 401"); no "wip", slice, round or review labels.
 
 ## Build scratch and ledger
 `build-scratch <spec-folder>` prints the lead's scratch dir: git-ignored, at the main

@@ -56,8 +56,8 @@ names: then run each command as `cd <path> && …` (`cd` does not carry between 
   tests by name, the app started only if wiring changed); the full suites are CI's.
 - Full gear: formatter and static analysis (lint) clean on the files you touched before
   you commit. Low gear skips linting.
-- Commit the green slice only (never red or breaking code). Message names the slice
-  and behavior precisely (e.g. "slice 3: reject expired JWT with 401"). Commit modes:
+- Commit the green slice only (never red or breaking code). The message says what changed
+  ("Reject expired JWT with 401"), not the process (no slice, round or review labels). Modes:
   `delivery-doctrine:delivery-loop`.
 - Self-review your diff: every behavior in the slice file built, nothing it did not ask
   for, names that say what things do, tests that check behavior rather than mocks.

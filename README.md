@@ -1,167 +1,252 @@
 # Delivery Doctrine
 
-A gear-based agentic delivery method for Claude Code. Hypothesis-first grilling, thin
-vertical slices behind hard alignment gates, a test-first implementer/critic loop,
-right-sized architecture (hexagonal only where it earns it, honor existing codebases),
-and language profiles for Java, Python, and Go.
+A delivery method for Claude Code: agents that grill the problem before building it, slice the
+work thin, write tests first, review their own work, and stop at every gate for your yes.
 
-## What's in the box
+It right-sizes architecture to the problem (hexagonal and DDD only where they earn it), follows
+your codebase's own conventions, and ships language profiles for Java, Go and Python.
 
-- **Doctrine** — injected at session start (SessionStart hook): gears (full / low),
-  alignment gates, vertical slicing, per-slice Definition of Done, architecture
-  judgment, narration discipline, safe defaults.
-- **24 skills** — the method: `grill-fast` (greenfield), `grill-brownfield`,
-  `thin-slice-planner` (waves of parallel PRs, + plan-critic gate), `delivery-loop` (the
-  per-wave loop: worktrees, ledger, review packages, fix loop, PRs, wave gate),
-  `close-out` (once live: consolidate slice files into plan/design/deferred, delete them,
-  fact-check and tighten the three, update each bounded context's context file),
-  `ddd-hexagonal-reviewer`, `fast-path` (low gear), `acceptance-testing`, `test-first`,
-  `execution-hygiene`, `systematic-debugging`, `review-feedback`, `narration-cue-map`; plus
-  language profiles — Java (`java-domain`, `spring-boot`, `gwt-testing`, `readable-java-style`,
-  `code-quality`, `concurrency-review`, `security-audit`), Python (`python-style`,
-  `pytest-testing`), Go (`go-style`, `go-testing`); `go-style` and `python-style` keep
-  adapter and concurrency/security depth in `references/`, read when a slice needs it.
-- **2 commands in `bin/`** — `build-scratch` (the lead's git-ignored scratch dir at the main
-  checkout's root) and `review-package` (one file holding a slice's commits, stat and diff
-  for the critic). Claude Code puts `bin/` on the Bash tool's PATH while the plugin is
-  enabled, so the skills call them by bare name. claude.ai and Cowork do not install a
-  plugin with a top-level `bin/`; this one is for Claude Code.
-- **3 agents** — `implementer` (opus by default, the deep tier unless remapped; mechanical
-  work is dispatched on the standard tier), `critic` (deep, 3-lens review), `plan-critic`
-  (deep, coverage/drift check before code). Tiers map to models in your profile; defaults
-  opus, sonnet, haiku.
-- **Guard hook** — PreToolUse block on destructive commands (`rm -rf`, `sudo`,
-  `pkill`/`killall`, force-push in all its spellings — `--force-with-lease` stays
-  allowed for rebasing a PR after a wave-mate merges, `git reset --hard`, `chmod 777`), plus the
-  execution-hygiene rules it enforces rather than instructs: wide test runs (`go test
-  ./...` or several whole packages, bare `pytest` or several test directories; one
-  package or file stays allowed, `DOCTRINE_WIDE_TESTS=1` opts out) and
-  `while`/`until` … `sleep` poll loops.
-- **Anchor hook** — UserPromptSubmit: once the session's context passes 150k tokens (read
-  from the last reply's token usage), it restates the doctrine's core rules in five lines
-  next to each message, where a long context still attends to them. Nothing below the
-  threshold; `DOCTRINE_ANCHOR_TOKENS` moves it, `DOCTRINE_ANCHOR=0` turns it off.
-- **Keep-awake hook** — SessionStart, macOS only: `caffeinate` tied to the session's
-  `claude` process, so the machine does not idle-sleep mid-run (in the author's logs, sleep
-  was a third of implementer time). Lid-closed still sleeps unless sleep is disabled
-  system-wide (`pmset disablesleep`, or an app that sets it); `DOCTRINE_LID_REMINDER=1`
-  adds a once-a-day reminder when it is not, and `DOCTRINE_KEEP_AWAKE=0` turns the
-  hook off.
-## Repository profile (optional)
+## How it works
 
-The plugin stays generic; facts about one repository live in that repository. Copy
-`templates/delivery-doctrine.md` to `.claude/delivery-doctrine.md` (shared with the team)
-or `.claude/delivery-doctrine.local.md` (personal; gitignore it) and fill in what applies:
-spec folder layout, where domain instructions live, hot files wave-mates must not both
-edit, PR and merge rules, worktree setup and test isolation. The SessionStart hook injects
-it after the doctrine. A personal `~/.claude/delivery-doctrine.md` applies to every
-repository and is injected before the repository's; use it for the `## Models` section,
-which maps the doctrine's three tiers (deep, standard, fast; default opus, sonnet, haiku)
-to the models you have, and can go finer: a task kind (`mechanical: opus`) or a single
-agent (`critic: fable`). Values are model aliases; an agent entry beats a task kind, which
-beats a tier. Without
-one, agents discover and honor the house conventions themselves. The profile is injected
-verbatim, so it is trusted like the repository's CLAUDE.md. A session in a git
-worktree reads the main checkout's `.local.md`, since the worktree has no copy of it.
+You say what you want built. Instead of jumping into code, the agent picks a **gear** and asks
+for your hypothesis: your read of what the problem is. It then grills that read against the requirements, or against
+the codebase if one exists, until the requirements are locked and you approve them.
 
-## Requirements
+Next it plans the work as **thin vertical slices**: each one a small behaviour that runs end to
+end through every layer, the first being a walking skeleton: the thinnest path through every layer, wired and passing
+before any feature. Slices that don't depend on each
+other are grouped into **waves** that run in parallel, one implementer agent per slice, each in
+its own git worktree. You approve the plan before any code is written.
 
-- `python3` on PATH (used by the guard, profile and anchor hooks).
-- `bash` and `git` (used by the `bin/` commands).
-- `gh`, for team mode's PRs and review threads.
+Each implementer writes a failing test, makes it pass and commits; the lead opens the PR. A critic agent reviews
+the slices that carry real design weight. When a wave's PRs are all open, you see them
+together; on your go-ahead they merge, and the next wave starts. When the feature is live,
+**close-out** folds the per-slice build notes into three lasting docs (plan, design, deferred
+work), deletes the slice files, fact-checks the three, and updates the context file
+(CLAUDE.md or AGENTS.md) of each part of the codebase the feature touched.
 
-## Install
+```mermaid
+flowchart TD
+    A["Gate 0 · pick the gear"] --> B[Your hypothesis]
+    B --> C[Grill against the requirements or the code]
+    C --> D{{"Gate 1 · requirements agreed"}}
+    D --> E[Plan slices in waves · plan-critic checks it]
+    E --> F{{"Gate 2 · wave plan agreed"}}
+    F --> G["Wave: slices in parallel<br/>failing test → green → critic → PR"]
+    G --> H{{"Gate 3 · PRs merged on your go-ahead"}}
+    H -->|next wave| G
+    H -->|last wave| I[Acceptance suite against the running app]
+    I --> J[Close-out once live]
+```
+
+**Two gears.** *Full gear* is the flow above, for anything real. *Low gear* is for spikes, small
+tasks and bug fixes: a short grill, a walking skeleton test-first, one critic pass, run,
+commit. Low gear cuts ceremony, never correctness or architecture fit.
+
+**Gates are hard stops.** At each gate the agent shows the result and waits. Silence, a partial
+answer or "looks fine, but…" is not a yes.
+
+## Quick start
 
 ```bash
 claude plugin marketplace add https://github.com/vishalswami/delivery-doctrine
 claude plugin install delivery-doctrine@delivery-doctrine
 ```
 
-Verify after install (in a fresh session):
-- `/plugin` — delivery-doctrine listed and enabled, with no errors.
-- `/context` — the doctrine text present; the 24 skills and 3 agents listed under
-  delivery-doctrine.
-- `/hooks` — the SessionStart, UserPromptSubmit and PreToolUse hooks registered.
-- Ask "what gear are we in?" — the session should answer from the doctrine.
-- On a scratch branch, try `git push --force` — the guard must refuse and point to
-  `--force-with-lease`.
+Start a new session and describe what you want to build. To check it loaded, ask "what gear
+are we in?"; the agent answers from the doctrine.
 
-## Updating
+Requires `python3`, `bash` and `git`. With the gear, Gate 0 picks a commit mode: **team** (a
+branch and PR per slice; needs `gh`) or **solo** (commits straight to the local repository).
 
-Maintainer (this repo): make the change, bump `version` in
-`.claude-plugin/plugin.json`, commit and push to `main`. The marketplace tracks the
-branch, so consumers pick up any new commit.
+The plugin is built for Claude Code. The skills and agents are portable Markdown, but other
+tools have no standard way to load them, and claude.ai and Cowork do not install a plugin with
+a top-level `bin/`.
 
-Consumer (each machine):
+## What's inside
+
+### Skills
+
+| Area | Skill | What it does |
+|---|---|---|
+| **Plan** | `grill-fast` | Greenfield requirements grill: batched questions, acceptance tests locked fast |
+| | `grill-brownfield` | Grill against an existing codebase and its domain language; keeps each part of the codebase's glossary and decisions current as they are settled |
+| | `thin-slice-planner` | Thin vertical slices in as few waves as possible, walking skeleton first |
+| | `fast-path` | Low gear: the whole flow collapsed for small work |
+| **Build** | `delivery-loop` | The per-wave loop: one worktree per slice, a ledger of what happened (the truth after a long session is compacted), bundled diffs for the critic, fix rounds, PRs, the wave gate |
+| | `test-first` | Red, green, refactor; Given-When-Then structure; honest tests |
+| | `acceptance-testing` | End-to-end tests through the real entry point, external systems stubbed |
+| | `execution-hygiene` | Scoped local checks, evidence before claiming done |
+| | `systematic-debugging` | Root cause before any fix; a reproduction test first |
+| | `close-out` | After launch: consolidate, delete build notes, fact-check the docs |
+| **Review** | `ddd-hexagonal-reviewer` | Is the architecture right-sized, and does it fit the codebase's existing conventions? |
+| | `review-feedback` | Acting on critic, reviewer and bot comments; replying and resolving threads |
+| **Present** | `narration-cue-map` | Keeps a live demo free of dead air while agents run |
+
+### Language profiles
+
+| Language | Skills |
+|---|---|
+| Java | `java-domain`, `readable-java-style`, `gwt-testing`, `spring-boot`, `code-quality`, `concurrency-review`, `security-audit` |
+| Go | `go-style`, `go-testing` (adapters, concurrency and security in `references/`) |
+| Python | `python-style`, `pytest-testing` (adapters, concurrency and security in `references/`) |
+
+A language profile loads before code in its language is written or reviewed, whether by a subagent or
+the main session.
+
+### Agents
+
+| Agent | Role |
+|---|---|
+| `implementer` | Builds one slice to green, test-first; in full gear, in its own worktree |
+| `critic` | Reviews a slice: spec compliance, then code quality and architecture, then gaps the spec missed |
+| `plan-critic` | Checks the wave plan against the requirements before any code |
+
+### Hooks
+
+| Hook | What it does |
+|---|---|
+| Doctrine | Injects the method at session start, plus your profiles (below) |
+| Guard | Blocks destructive commands (`rm -rf`, `sudo`, force-push, `git reset --hard`, …), wide local test runs and sleep-poll loops |
+| Anchor | Past 150k tokens of context, restates five core rules next to each message, where a long context still attends to them |
+| Keep-awake | macOS: stops the machine idle-sleeping while a session runs |
+
+Two small commands in `bin/` support the loop: `build-scratch` (the orchestrating session's
+git-ignored scratch folder) and `review-package` (a slice's commits and diff in one file for the
+critic). Claude Code puts `bin/` on the Bash tool's path while the plugin is enabled, so the
+skills call them by bare name.
+
+## Configure
+
+Everything below is optional; without it the agents read the codebase and follow what they find.
+
+### Repository profile
+
+Facts about one repository live in that repository. Copy
+[`templates/delivery-doctrine.md`](templates/delivery-doctrine.md) to:
+
+- `.claude/delivery-doctrine.md`, shared with your team, or
+- `.claude/delivery-doctrine.local.md`, just for you (gitignore it).
+
+Fill in what applies: where specs live, files that parallel PRs must not both edit, how PRs are
+opened and merged, how a fresh worktree is set up. It is injected after the doctrine, word for
+word, so trust it as you would the repository's CLAUDE.md. A session in a git worktree falls back
+to the main checkout's `.local.md` when the worktree has none. A repository profile that is a
+symlink is ignored, so a cloned repository cannot point one at a private file.
+
+### Personal profile and models
+
+`~/.claude/delivery-doctrine.md` applies to every repository and is injected before the
+repository's, so the repository profile wins where they disagree. Its `## Models` section maps the
+doctrine's three model tiers to the models you have, and can go finer:
+
+| Key | Covers | Default |
+|---|---|---|
+| `deep` | Domain code and every review | opus |
+| `standard` | Mechanical code (migrations, wiring, generated code, rebases) and analysis | sonnet |
+| `fast` | Lookups only (search, read a file, fetch a page) | haiku |
+| `domain`, `review`, `mechanical`, `analysis`, `retrieval` | One kind of task | its tier |
+| `implementer`, `critic`, `plan-critic` | One agent | its task's tier |
+
+```markdown
+## Models
+- critic: fable
+- mechanical: opus
+```
+
+Values are model aliases (opus, sonnet, haiku, fable). An agent entry beats a kind of task, which beats a tier.
+
+### House conventions
+
+The doctrine follows your codebase. Where the house has the same structure under other names,
+the agents use the house's names; where a structure is missing, they introduce it. A house rule
+that is plainly bad practice is named, with a better practice proposed for you to decide; it is
+neither followed blindly nor quietly ignored.
+
+### Switches
+
+Set in the `env` block of `~/.claude/settings.json`.
+
+| Variable | Default | Effect |
+|---|---|---|
+| `DOCTRINE_WIDE_TESTS=1` | off | Prefix one command to let a wide test run past the guard |
+| `DOCTRINE_ANCHOR=0` | on | Turn off the long-session anchor |
+| `DOCTRINE_ANCHOR_TOKENS` | `150000` | Context size at which the anchor starts |
+| `DOCTRINE_KEEP_AWAKE=0` | on | Turn off keep-awake (macOS) |
+| `DOCTRINE_LID_REMINDER=1` | off | Daily reminder when closing the lid would still sleep the Mac |
+
+### Fewer permission prompts
+
+The guard blocks a short list of destructive commands; it is not a sandbox. To cut prompts
+while keeping edits gated, in `~/.claude/settings.json`:
+
+```json
+{
+  "permissions": {
+    "allow": ["Read", "Grep", "Glob", "Task", "TodoWrite", "WebFetch", "WebSearch",
+              "Bash(build-scratch *)", "Bash(review-package *)"],
+    "ask": ["Edit", "Write", "MultiEdit", "NotebookEdit"]
+  }
+}
+```
+
+Adding plain `"Bash"` to `allow` runs every shell command unasked, with only the guard's
+blocklist as a brake. Do that only if you accept the risk.
+
+## Verify and update
+
+After installing or updating, in a fresh session:
+
+- `/plugin` lists delivery-doctrine, enabled, with no errors.
+- `/context` shows the doctrine text and the plugin's skills and agents.
+- `/hooks` shows the SessionStart, UserPromptSubmit and PreToolUse hooks.
+- On a scratch branch, `git push --force` is refused, pointing to `--force-with-lease`.
+
+To update:
 
 ```bash
 claude plugin marketplace update delivery-doctrine
 claude plugin update delivery-doctrine
 ```
 
-Then restart the session and re-run the verification above.
+Then restart your sessions; a running session keeps the version it started with.
 
-## Optional: fewer permission prompts
+## Principles
 
-The guard hook blocks a short list of destructive commands; it is not a sandbox. If you
-want fewer prompts, you can auto-allow reading and searching and keep edits gated, in
-`~/.claude/settings.json`:
+- **Gates over momentum.** Stop, show, wait for a yes.
+- **Thin and vertical.** Every slice runs end to end; nothing speculative.
+- **Test first, honestly.** A test that cannot fail proves nothing.
+- **Right-sized architecture.** Patterns only where the problem has them; the house style wins.
+- **Evidence over claims.** Nothing is done until the output says so.
+- **No comments.** Names and structure carry the meaning; the reasons go to ADRs and test names.
 
-```json
-{
-  "permissions": {
-    "allow": ["Read", "Grep", "Glob", "Task", "TodoWrite", "WebFetch", "WebSearch"],
-    "ask": ["Edit", "Write", "MultiEdit", "NotebookEdit"]
-  }
-}
+## Contributing
+
+Skills and agents are plain Markdown. Behaviour is checked with Claude Code's plugin evals:
+
+```bash
+claude plugin eval . --scaffold --runs 3
 ```
 
-To run the two bundled commands without a prompt, add `"Bash(build-scratch *)"` and
-`"Bash(review-package *)"` to `allow`. They read git and write only the scratch dir or the
-package file you name.
+The cases in [`evals/`](evals/) check that the doctrine is injected, that a new feature names a
+gear and starts the grill, that the right skills load for a flaky test, review comments, a small
+change or a Go or Python change, and that the agent never claims done without evidence.
 
-Adding `"Bash"` to `allow` runs every shell command without asking, with only the guard
-hook's blocklist as a brake. Do that only if you accept that risk.
-
-## Switches
-
-| Variable | Default | Effect |
-|---|---|---|
-| `DOCTRINE_WIDE_TESTS=1` | off | prefix one command to allow a wide test run past the guard |
-| `DOCTRINE_KEEP_AWAKE=0` | on | stop the keep-awake hook (macOS) |
-| `DOCTRINE_LID_REMINDER=1` | off | daily reminder when system sleep is not disabled (macOS) |
-| `DOCTRINE_ANCHOR=0` | on | stop the long-session anchor |
-| `DOCTRINE_ANCHOR_TOKENS` | `150000` | context size at which the anchor starts |
-
-Set them in the `env` block of `~/.claude/settings.json`.
-
-## Other tools (Cursor, Codex)
-
-This is a native Claude Code plugin. Cursor/Codex have no standard mechanism for
-Claude Code plugins today. The skills and agents are plain Markdown — portable by copying
-into each tool's own rules/config format if needed.
-
-## Shape of the method
-
-Gate 0: pick the gear (full / low) and commit mode (solo / team-PR) → state your
-hypothesis → grill breaks it against ground truth → Gate 1: requirements locked →
-thin vertical slices grouped into as few waves as possible, walking-skeleton-first,
-plan-critic checks coverage and wave-mate collisions → Gate 2: wave plan approved →
-per wave: every slice starts together off main, one implementer each in its own
-worktree (red test → green → critic on meaningful slices → PR) → Gate 3: all the
-wave's PRs shown together, merged on the user's go-ahead once mergeable with every
-thread resolved → next wave → close: full acceptance suite against the running app →
-once live, close-out consolidates the slice files into plan.md, design.md and deferred.md, deletes them, and fact-checks and tightens the three docs.
-Low gear (`fast-path`) collapses the ceremony for spikes and small fixes without
-dropping test-first, one critic pass, or architecture fit.
+To release: bump `version` in `.claude-plugin/plugin.json` and push to `main`; the marketplace
+tracks the branch.
 
 ## License and credits
 
-MIT — see `LICENSE`. Some skills are adapted from Matt Pocock's
-[skills](https://github.com/mattpocock/skills) (MIT), Piotr Mińkowski's
-[claude-ai-spring-boot](https://github.com/piomin/claude-ai-spring-boot) (Apache-2.0) and
-Decebal Suiu's [claude-code-java](https://github.com/decebals/claude-code-java) (MIT); the
-delivery loop, test-first, execution-hygiene, systematic-debugging and review-feedback
-skills, the implementer and critic agents and the two scripts are adapted from Jesse
-Vincent's [superpowers](https://github.com/obra/superpowers) (MIT). See
-`THIRD_PARTY_NOTICES.md`.
+MIT, see [`LICENSE`](LICENSE). Adapted with thanks from:
+
+- Jesse Vincent's [superpowers](https://github.com/obra/superpowers) (MIT): the delivery loop,
+  test-first, execution-hygiene, systematic-debugging and review-feedback skills, the
+  implementer and critic agents, parts of thin-slice-planner and plan-critic, and the two
+  commands.
+- Matt Pocock's [skills](https://github.com/mattpocock/skills) (MIT): grill-brownfield.
+- Piotr Mińkowski's [claude-ai-spring-boot](https://github.com/piomin/claude-ai-spring-boot)
+  (Apache-2.0): code-quality and spring-boot.
+- Decebal Suiu's [claude-code-java](https://github.com/decebals/claude-code-java) (MIT):
+  concurrency-review and security-audit.
+
+Details in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
