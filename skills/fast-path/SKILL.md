@@ -20,7 +20,11 @@ doctrine's execution rule; `delivery-doctrine:delivery-loop`, Inline mode).
 1. **Grill with `delivery-doctrine:grill-fast`, scope-appropriate.** Run the `delivery-doctrine:grill-fast` skill even in
    low gear — a small task shrinks the grill naturally; it does not remove it. Lock
    what's being built and its acceptance check.
-2. **Walking skeleton, test-first.** Write the failing acceptance test for the thin
+2. **Walking skeleton, test-first.** Inline, this session is the implementer, so first load
+   the language profile it would: Go → `delivery-doctrine:go-style`, `delivery-doctrine:go-testing`;
+   Python → `delivery-doctrine:python-style`, `delivery-doctrine:pytest-testing`; Java →
+   `delivery-doctrine:java-domain`, `delivery-doctrine:readable-java-style`, `delivery-doctrine:gwt-testing`.
+   Then write the failing acceptance test for the thin
    end-to-end thread, then minimal code to green, per `delivery-doctrine:test-first`
    (the loop and the naming); drive the entry point per `delivery-doctrine:acceptance-testing`.
    Name the test `given<Context>_when<Action>_then<Outcome>` — this is quality, not

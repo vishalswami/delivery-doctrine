@@ -134,8 +134,8 @@ explain a skill, justify a decision, or review the prior slice by hand.
 - Depth: `delivery-doctrine:narration-cue-map`.
 
 ## Skills
-Each skill self-describes; the harness lists them. Language profiles load only on their
-language's work: Java/Spring, Python, Go.
+Each skill self-describes; the harness lists them. Language profiles load on their language's
+work, before its code is written or reviewed, in a subagent or inline: Java/Spring, Python, Go.
 
 ## Skills discipline
 This file summarises; the skill it names governs, and the user's instructions outrank both.

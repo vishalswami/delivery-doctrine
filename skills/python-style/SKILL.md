@@ -98,3 +98,7 @@ Hexagonal applies in Python when it earns it: pure domain (dataclasses, no frame
 imports), ports and adapters as above only at a real boundary. Right-size per
 `delivery-doctrine:ddd-hexagonal-reviewer` — a script rarely needs more than one port in
 and one out.
+
+## References
+- `references/adapters.md` when the slice touches an adapter (store, HTTP, consumer).
+- `references/concurrency-security.md` when it adds async code or threads, or takes untrusted input.

@@ -108,3 +108,7 @@ A CLI or batch tool is a `main` + packages. For services, stdlib `http.ServeMux`
 default (Go 1.22+: `mux.HandleFunc("GET /orders/{id}", ...)`, `r.PathValue("id")`); a
 third-party router only if the house already uses one. Same "invent nothing" rule as the
 architecture.
+
+## References
+- `references/adapters.md` when the slice touches an adapter (store, HTTP, consumer).
+- `references/concurrency-security.md` when it spawns goroutines or takes untrusted input.
