@@ -36,16 +36,22 @@ CompletableFuture.supplyAsync(() -> rates.fetch(currency), ioExecutor)
 ## Spring @Async
 - **`@EnableAsync`** on a `@Configuration` class, or `@Async` silently runs synchronously.
 - **Through the proxy.** A call from the same class (`this.sendConfirmation(order)`) bypasses the
-  proxy and runs on the caller's thread. Call it on another bean. The method is public: a private
-  method is never intercepted.
+  proxy and runs on the caller's thread. Call it on another bean. The method is public: non-public
+  methods are never intercepted.
 - **The executor behind it.** In Boot, with no `Executor` bean of yours, `@Async` runs on the
   auto-configured `applicationTaskExecutor`: a `ThreadPoolTaskExecutor` with 8 core threads and an
   unbounded queue, so `max-size` never applies and a burst queues without limit. Bound it with
   `spring.task.execution.pool.queue-capacity` (then `max-size` takes effect) and name the threads
   (`spring.task.execution.thread-name-prefix`). With `spring.threads.virtual.enabled=true` it is a
-  `SimpleAsyncTaskExecutor` on virtual threads. Defining your own `Executor` bean makes Boot's
-  back off. Plain Spring without an executor bean falls back to `SimpleAsyncTaskExecutor`, a new
-  thread per task: unbounded under load.
+  `SimpleAsyncTaskExecutor` on virtual threads. Plain Spring without an executor bean falls
+  back to `SimpleAsyncTaskExecutor`, a new thread per task: unbounded under load.
+- **A bounded queue needs a decision on what a full one does.** The default `AbortPolicy` throws
+  `TaskRejectedException` to the submitter; on a `ThreadPoolTaskExecutor` of your own,
+  `setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy())` runs the task on the
+  caller instead, which slows producers down (backpressure). Pick one and test the full queue.
+- **Your own `Executor` bean makes Boot's back off**, and Spring MVC async requests, WebFlux,
+  GraphQL and JPA bootstrapping need a bean named `applicationTaskExecutor`: name yours that, or
+  keep Boot's for them with `spring.task.execution.mode=force`.
 - **Failures of `void` methods** go to the `AsyncUncaughtExceptionHandler` (logged by default) and
   never reach the caller; a failure the caller must act on returns `CompletableFuture<T>`.
 - **Context does not follow the thread.** `SecurityContextHolder` is thread-bound, so the async

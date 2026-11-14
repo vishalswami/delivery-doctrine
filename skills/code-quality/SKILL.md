@@ -110,7 +110,7 @@ List<OrderEntity> findByCustomerIdIn(Collection<UUID> customerIds);
   asked for. Depth: `spring-boot`'s `references/web.md`.
 
 ## Report
-Use the critic's shape (`delivery-doctrine:critic`, Output): a verdict, then findings most
+Use the critic agent's Output shape: a verdict, then findings most
 severe first, each with file:line, the defect, what it breaks and the fix, then what to keep.
 - **Critical**: security, data loss or a crash path; blocks the merge.
 - **Important**: wrong or brittle behaviour, a swallowed error, copied logic, an N+1 on a hot

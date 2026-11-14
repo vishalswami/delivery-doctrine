@@ -73,10 +73,10 @@ synchronized (first) {
   nothing; it belongs on a bounded platform pool.
 - Never pool virtual threads. Limit concurrency against a scarce resource with a `Semaphore`.
 - Pinning: since JDK 24 (JEP 491, so Java 25 LTS) `synchronized` no longer pins the carrier while
-  blocked. A thread still pins when it blocks inside native code or an FFM call that calls back
-  into Java, inside a class initializer, or while waiting for a class another thread is
-  initialising. On Java 21, blocking I/O inside `synchronized` pins: use a `ReentrantLock`. The
-  JFR event `jdk.VirtualThreadPinned` reports the reason.
+  blocked. A thread still pins when a native or FFM frame is on its stack and the Java callback
+  blocks, when it blocks while loading a class, when it blocks inside a class initializer, and
+  while it waits for a class another thread is initialising. On Java 21, blocking I/O inside
+  `synchronized` pins: use a `ReentrantLock`. The JFR event `jdk.VirtualThreadPinned` reports why.
 - `ThreadLocal` caches multiply with a thread per task. Request context goes in a `ScopedValue`
   (final in Java 25): bound for a call, read with `get()`, inherited only by subtasks forked in a
   `StructuredTaskScope`, not by threads started through an executor.
@@ -115,5 +115,5 @@ try (var scope = StructuredTaskScope.open()) {
   test; a lock order or a deliberate `volatile` no test can show goes to an ADR.
 - Critical: a race on money, stock or identity; a deadlock path; a swallowed async failure.
   Important: an unbounded queue or executor, a missing timeout, a lost security context.
-  Report in the critic's shape (`delivery-doctrine:critic`). Where to look first:
+  Report in the critic agent's Output shape. Where to look first:
   `grep -rnE "synchronized|volatile|ThreadLocal|@Async|Executors\.|CompletableFuture\." --include="*.java" src/main`

@@ -14,10 +14,9 @@ description: Use when reviewing Java code for security, before a release, or whe
 
 Examples carry ✅/❌ labels to teach; delivered code carries none.
 
-The Java security review checklist. How to configure Spring Security (filter chains, resource
-server, CSRF, CORS, headers, password encoder, method security) is
-`delivery-doctrine:spring-boot`'s `references/security.md`; this skill says what must be true.
-Findings rank Critical, Important or Minor in the critic's shape (`delivery-doctrine:critic`).
+The Java security review checklist: what must be true. How to configure Spring Security is
+`delivery-doctrine:spring-boot`'s `references/security.md`. Findings rank Critical, Important or
+Minor in the critic agent's Output shape.
 
 ## OWASP Top 10:2025, the Java checks
 | # | Risk | Check |
@@ -89,7 +88,8 @@ the `quarkus-rest-csrf` extension (`quarkus.rest-csrf.*`).
   `readDocument.asOwner(documentId, callerId)`, never `documents.byId(id)` for whatever ID
   arrived. Loading by the given ID alone is an IDOR (A01, Critical).
 - **Passwords** hashed adaptively: bcrypt or Argon2 through a delegating encoder; MD5, SHA-1 or a
-  bare SHA-256 is Critical. Comparison of secrets in constant time (`MessageDigest.isEqual`).
+  bare SHA-256 is Critical. Secrets compare in constant time (`MessageDigest.isEqual`). Policy per
+  NIST SP 800-63B: a minimum length and a breached-password check, no composition rules.
 - **Tokens** validated (signature, issuer, audience, expiry) by the framework, not hand-parsed.
 - **Outbound calls** built from user input (webhooks, image URLs) resolve against an allowlist of
   hosts and schemes, and do not follow redirects into internal addresses (SSRF).

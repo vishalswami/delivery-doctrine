@@ -105,7 +105,7 @@ class OrderControllerTest {
 - `@EntityScan` is `org.springframework.boot.persistence.autoconfigure.EntityScan`; Actuator's `HealthIndicator`/`Health` are in `org.springframework.boot.health.contributor`
 - Spring Framework 7 null safety uses JSpecify (`org.jspecify.annotations.Nullable`, `@NullMarked`); the `org.springframework.lang` annotations are deprecated
 - Undertow is removed; Spring Retry is no longer version-managed (Framework 7 has `@Retryable` in core)
-- Spring Cloud release train for Boot 4 is 2025.1.x (Oakwood)
+- Spring Cloud release train for Boot 4 is 2025.1.x (Oakwood); where the house runs Gateway 5, it is `spring-cloud-starter-gateway-server-webflux` (or `-webmvc`) with properties under `spring.cloud.gateway.server.webflux.*`, the old starter and `spring.cloud.gateway.*` prefix gone
 
 ## References
 - `references/web.md` when the slice adds or changes an endpoint: HTTP contract, validation, `ProblemDetail`, outbound `RestClient`, CORS.

@@ -62,6 +62,12 @@ class JpaOrderStore implements OrderStore {
     public Optional<Order> byId(OrderId id) {
         return repository.findWithLinesById(id.value()).map(OrderEntity::toDomain);
     }
+
+    @Override
+    @Transactional
+    public boolean release(OrderId id) {
+        return repository.releaseIfPlaced(id.value()) == 1;
+    }
 }
 ```
 - The entity has no public setters and no business rules; the aggregate keeps the invariants,

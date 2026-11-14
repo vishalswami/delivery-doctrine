@@ -93,7 +93,7 @@ class JpaOrderStoreTest {
 - Test against the database production runs, never H2: dialect, constraints, locking and native
   SQL differ. Flyway runs the real migrations into the container.
 - `@ServiceConnection` (`org.springframework.boot.testcontainers.service.connection`) derives the
-  connection from the container, replacing `@DynamicPropertySource`. In Boot 4,
+  connection from the container, replacing `@DynamicPropertySource`. Since Boot 3.4,
   `@AutoConfigureTestDatabase` defaults to `Replace.NON_TEST`, which leaves a `@ServiceConnection`
   DataSource alone, so no `replace = NONE` is needed.
 - Testcontainers 2 moved modules to `org.testcontainers.<module>` packages with non-generic

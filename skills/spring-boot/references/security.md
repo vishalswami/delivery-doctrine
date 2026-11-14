@@ -43,8 +43,10 @@ public class SecurityConfig {
 }
 ```
 - The decoder comes from `spring.security.oauth2.resourceserver.jwt.issuer-uri`; Boot builds
-  it and validates signature, issuer and expiry. Without a custom converter, authorities come
-  from the `scope`/`scp` claim prefixed `SCOPE_` (`hasAuthority("SCOPE_orders:write")`).
+  it and validates signature, issuer, `exp` and `nbf`. It checks `aud` only when
+  `spring.security.oauth2.resourceserver.jwt.audiences` lists this API, so set it: a token
+  minted for another service must not pass. Without a custom converter, authorities come from
+  the `scope`/`scp` claim prefixed `SCOPE_` (`hasAuthority("SCOPE_orders:write")`).
 - Deny by default: the last matcher is `anyRequest().authenticated()` (or `denyAll()`), and each
   public path is listed by name.
 - CSRF off only because no browser sends credentials to this API automatically. A cookie, a
@@ -62,7 +64,9 @@ sets up the cookie repository and the request handler together:
 http.csrf(csrf -> csrf.spa());
 ```
 Login through `oauth2Login(...)` or `formLogin(...)`, session fixation protection left at its
-default, and a session timeout the requirements name.
+default, and a session timeout the requirements name. Where the service stores its own users, a
+`UserDetailsService` over the persistence adapter plus the password encoder below; still no
+self-minted JWT. If the service must issue tokens, that is Spring Authorization Server.
 
 ## Headers
 Spring Security writes `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,

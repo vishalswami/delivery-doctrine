@@ -40,7 +40,7 @@ If a decision is easy to reverse, skip it — you'll just reverse it. If it's no
 
 ### What qualifies
 
-- **Architectural shape.** "Services talk through events, never through shared tables." "The write model is event-sourced, the read model is projected into Postgres."
+- **Architectural shape.** "One deployable per bounded context." "Modules call each other through their public API, never each other's tables."
 - **Integration patterns between contexts.** "Ordering and Billing communicate via domain events, not synchronous HTTP."
 - **Technology choices that carry lock-in.** Database, message bus, auth provider, deployment target. Not every library — just the ones that would take a quarter to swap out.
 - **Boundary and scope decisions.** "Customer data is owned by the Customer context; other contexts reference it by ID only." The explicit no-s are as valuable as the yes-s.

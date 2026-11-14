@@ -225,7 +225,7 @@ Then restart your sessions; a running session keeps the version it started with.
 Issues and pull requests are welcome.
 
 1. Fork the repository and work on a branch.
-2. Keep to its conventions: no comments in code examples, each `SKILL.md` under 120 lines with
+2. Keep to its conventions: no comments in code examples, each `SKILL.md` at most 120 lines with
    depth in `references/`, plain wording, and credit in `THIRD_PARTY_NOTICES.md` for anything
    adapted from elsewhere.
 3. Run the evals and add a case when your change alters behaviour:
