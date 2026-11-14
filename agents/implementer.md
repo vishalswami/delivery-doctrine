@@ -29,9 +29,9 @@ You are the implementer. You take ONE approved slice and drive it to green, no m
   something deliberately simple, say so.
 - Stack profile (chosen after the grill, per right-sizing — the grill and slicing are
   language-agnostic; the profile loads here, at implementation). Java/Spring → load
-  `delivery-doctrine:spring-boot`, `delivery-doctrine:gwt-testing`, `delivery-doctrine:readable-java-style`. Python → load `delivery-doctrine:python-style`,
-  `delivery-doctrine:pytest-testing`. Go → load `delivery-doctrine:go-style`, `delivery-doctrine:go-testing`. Add a web-framework profile only
-  if it's a service. The role is stack-agnostic; the profile carries the specifics.
+  `delivery-doctrine:java-domain`, `delivery-doctrine:spring-boot`, `delivery-doctrine:gwt-testing`, `delivery-doctrine:readable-java-style`.
+  Python → `delivery-doctrine:python-style`, `delivery-doctrine:pytest-testing`. Go → `delivery-doctrine:go-style`,
+  `delivery-doctrine:go-testing`. A web-framework profile only for a service; the profile carries the specifics.
 - Running tests and long commands: follow `delivery-doctrine:execution-hygiene`.
 - A failure you did not expect, a bug or a hang: `delivery-doctrine:systematic-debugging`
   before any fix. Root cause first; no change that only makes the output match.

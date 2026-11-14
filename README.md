@@ -10,14 +10,14 @@ and language profiles for Java, Python, and Go.
 - **Doctrine** — injected at session start (SessionStart hook): gears (full / low),
   alignment gates, vertical slicing, per-slice Definition of Done, architecture
   judgment, narration discipline, safe defaults.
-- **23 skills** — the method: `grill-fast` (greenfield), `grill-brownfield`,
+- **24 skills** — the method: `grill-fast` (greenfield), `grill-brownfield`,
   `thin-slice-planner` (waves of parallel PRs, + plan-critic gate), `delivery-loop` (the
   per-wave loop: worktrees, ledger, review packages, fix loop, PRs, wave gate),
   `close-out` (once live: consolidate slice files into plan/design/deferred, delete them,
   fact-check and tighten the three, update each bounded context's context file),
   `ddd-hexagonal-reviewer`, `fast-path` (low gear), `acceptance-testing`, `test-first`,
   `execution-hygiene`, `systematic-debugging`, `review-feedback`, `narration-cue-map`; plus
-  language profiles — Java (`spring-boot`, `gwt-testing`, `readable-java-style`,
+  language profiles — Java (`java-domain`, `spring-boot`, `gwt-testing`, `readable-java-style`,
   `code-quality`, `concurrency-review`, `security-audit`), Python (`python-style`,
   `pytest-testing`), Go (`go-style`, `go-testing`).
 - **2 commands in `bin/`** — `build-scratch` (the lead's git-ignored scratch dir at the main
@@ -78,7 +78,7 @@ claude plugin install delivery-doctrine@delivery-doctrine
 
 Verify after install (in a fresh session):
 - `/plugin` — delivery-doctrine listed and enabled, with no errors.
-- `/context` — the doctrine text present; the 23 skills and 3 agents listed under
+- `/context` — the doctrine text present; the 24 skills and 3 agents listed under
   delivery-doctrine.
 - `/hooks` — the SessionStart, UserPromptSubmit and PreToolUse hooks registered.
 - Ask "what gear are we in?" — the session should answer from the doctrine.

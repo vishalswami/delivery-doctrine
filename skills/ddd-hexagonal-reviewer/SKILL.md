@@ -15,6 +15,17 @@ still runs in conform mode when the house style is hexagonal/DDD; it is skipped 
 a greenfield throwaway with no architecture to honor.
 
 ## Applicability guard (decide first)
+- **Read the house record before judging**: the context file of each touched bounded context
+  (AGENTS.md or CLAUDE.md; format in `delivery-doctrine:grill-brownfield`'s CONTEXT-FILE.md),
+  the repository profile, and the specs and ADRs they point to. A choice recorded there as
+  deliberate is not a finding (a SQL-only status guard that avoids a read-update-persist
+  race); flag only where the code departs from its own record.
+- **House conventions first, for consistency.** Where the house has a structure under other
+  names, conform to its names; where it lacks one these rules or the language profile call
+  for, introduce it inside the house's architecture, never a different architecture (below).
+  A house rule that is plainly bad practice (bugs, security or correctness risk, or working
+  against consistency) is neither followed nor bypassed silently: a finding that names it,
+  gives the reason and proposes the better practice for the user to decide.
 - **Greenfield with hexagonal chosen, or brownfield whose house style is hexagonal**
   → apply the hexagonal rules below.
 - **Brownfield with a different established architecture** → do NOT impose hexagonal.
@@ -30,8 +41,10 @@ a greenfield throwaway with no architecture to honor.
 - Dependencies point inward. The domain is pure: no framework imports or annotations
   on domain types (no Jackson, no Spring on domain).
 - Ports vs adapters: a `ports/out` interface for anything the domain needs from
-  outside (sinks, readers, clocks, encryptors); a `ports/in` interface per use case.
-  Depend on ports, never concrete adapters.
+  outside (sinks, readers, clocks, encryptors); a `ports/in` interface per use case where
+  the language profile calls for one. Depend on ports, never concrete adapters. Port and
+  adapter are roles, not directory names: the language profile says how its language
+  spells them (Go and Python declare the port at its consumer).
 - Mechanism/technology names (Jwt, AesGcm, Kinesis, Spring) appear ONLY in adapter
   class names — never in domain or port names.
 - Wire/serialization lives in an adapter (DTO + hand-written mapper), never on domain
@@ -54,7 +67,10 @@ issues are usually Important, unless they break a boundary the domain depends on
 is Critical.
 
 ## Pairing
-- Invoked by `critic` Stage 2. Java specifics: `delivery-doctrine:spring-boot`, `delivery-doctrine:code-quality`,
+- Invoked by `critic` Stage 2. Java specifics: `delivery-doctrine:java-domain` (domain types,
+  layout, wiring), `delivery-doctrine:spring-boot`, `delivery-doctrine:code-quality`,
   `delivery-doctrine:readable-java-style`. The layered examples in `delivery-doctrine:spring-boot` / `delivery-doctrine:code-quality` are
   illustrative Spring wiring, not the mandated architecture — architecture is decided
   here, per context.
+- Go: `delivery-doctrine:go-style` (Domain types, Layout and wiring). Python:
+  `delivery-doctrine:python-style` (same sections).

@@ -36,9 +36,8 @@ You judge the code in the diff; the implementer's report is a list of claims to 
   full cost. Take a large diff in passes yourself.
 
 ## Stage 1 — spec compliance (first)
-- Missing: requested but not implemented.
+- Missing: requested but not implemented. Misunderstanding: right problem, wrong solution.
 - Extra: built but not requested (over-engineering, speculative structure, unused ports).
-- Misunderstanding: right problem, wrong solution.
 - A batched dispatch (one brief, several same-shape edits) is checked file by file: every
   file the brief names has its hunk; a named file absent from the diff is Missing.
 Do not start stage 2 until spec compliance passes.
@@ -47,17 +46,18 @@ Do not start stage 2 until spec compliance passes.
 - Clean separation, error handling, edge cases, integration; honest tests per
   `delivery-doctrine:test-first` (a nameable break, hand-derived expectations, no mock asserts).
   A bug fix with no test reproducing the bug is a finding (`delivery-doctrine:systematic-debugging`).
-- Architecture: dependencies inward, domain pure, ports only at real boundaries; the
-  over-engineering check from `delivery-doctrine:ddd-hexagonal-reviewer`.
+- Architecture: dependencies inward, domain pure, ports only at real boundaries; the house-record
+  and over-engineering checks from `delivery-doctrine:ddd-hexagonal-reviewer`.
 - Public contract: did an internal representation become the public API? Flag only when the
   caller plausibly doesn't hold it, or it closes a door the requirements name. A changed
   contract keeps its existing callers working, or the slice file names the break. A schema
   change migrates existing data forward, and the code deployed during rollout handles both shapes.
 - A defect the slice file itself asks for (a test with no assertion, copied logic) is
   still a finding, marked plan-mandated; the user rules.
-- Language profile. Java: `delivery-doctrine:code-quality`, `delivery-doctrine:concurrency-review`,
-  `delivery-doctrine:security-audit` as relevant. Go: `delivery-doctrine:go-style`,
-  `delivery-doctrine:go-testing`. Python: `delivery-doctrine:python-style`, `delivery-doctrine:pytest-testing`.
+- Language profile. Java: `delivery-doctrine:java-domain`, `delivery-doctrine:code-quality`,
+  `delivery-doctrine:concurrency-review`, `delivery-doctrine:security-audit` as relevant. Go:
+  `delivery-doctrine:go-style`, `delivery-doctrine:go-testing`. Python: `delivery-doctrine:python-style`,
+  `delivery-doctrine:pytest-testing`.
 
 ## Stage 3 — adversarial spec-gap pass (always)
 The slice file describes what the code is for, not every input it will meet. Where it is
