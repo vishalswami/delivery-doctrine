@@ -78,7 +78,7 @@ a light pass on the rest.
   the deploy finale, once at the close, never per iteration. They run end to end against
   in-process stubs of external boundaries. Depth: `delivery-doctrine:acceptance-testing`.
 - Full gear, when a slice is done: formatter and static analysis (lint) clean on the
-  files the slice touched, before the commit. (Enforcing git hook: the DoD hook, later.)
+  files the slice touched, before the commit.
 - Low gear collapses the loop: walking skeleton green, one critic pass, own eyes, run,
   commit; no acceptance suite, no lint (see Gears / `delivery-doctrine:fast-path`).
 - Depth: `delivery-doctrine:test-first`, `delivery-doctrine:execution-hygiene`.

@@ -23,7 +23,7 @@ labelled discoveries (`[SCOPE]` / `[FUTURE]` / `[DISCUSS]` / `[RISK]`) are ready
 prompts to raise with the room. This window carries the most narration; lean on it.
 
 ### 2. Slice review (Gate 2) — deliberate, no talk-over
-Do NOT narrate over the slice list while scrolling. This is where a skipped slice bites
+Do NOT narrate over the wave plan while scrolling. This is where a skipped slice bites
 you. Walk each slice aloud by its `Cue` (the one-glance flow sketch), check it against
 its acceptance test, and name its risk. Never skim. Short and structured beats fluent
 and skipping.

@@ -45,8 +45,9 @@ A method should read top-to-bottom as the full story of what it does.
 
 **Do NOT extract just because a method is 15–30 lines.** A clear 20-line method is not a smell. Three one-call private helpers that fragment the story is worse.
 
+❌ Reflexive decomposition: the reader chases three helpers to follow one flow.
+
 ```java
-// ❌ Reflexive decomposition — reader must chase 3 helpers to follow one flow
 public void registerOrder(OrderRequest request) {
     validateRequest(request);
     Order order = buildOrder(request);
@@ -55,8 +56,11 @@ public void registerOrder(OrderRequest request) {
 private void validateRequest(...) { ... }
 private Order buildOrder(...) { ... }
 private void persistAndPublish(...) { ... }
+```
 
-// ✅ Complete story inline — readable in one pass
+✅ The complete story inline, readable in one pass.
+
+```java
 public void registerOrder(OrderRequest request) {
     if (request.items().isEmpty()) {
         throw new EmptyOrderException(request.customerId());

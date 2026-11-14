@@ -1,11 +1,20 @@
 {
   "name": "delivery-doctrine",
   "displayName": "Delivery Doctrine",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "A gear-based agentic delivery method: hypothesis-first grilling, vertical slicing with hard alignment gates, a test-first implementer/critic loop run in waves of parallel PRs, right-sized architecture (hexagonal only where it earns it, honor existing codebases), and language profiles for Java, Python, and Go.",
   "author": {
     "name": "Vishal Swami"
   },
+  "homepage": "https://github.com/vishalswami/delivery-doctrine",
+  "repository": "https://github.com/vishalswami/delivery-doctrine",
   "license": "MIT",
-  "keywords": ["tdd", "ddd", "vertical-slicing", "delivery", "methodology", "code-review"]
+  "keywords": [
+    "tdd",
+    "ddd",
+    "vertical-slicing",
+    "delivery",
+    "methodology",
+    "code-review"
+  ]
 }

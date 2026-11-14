@@ -2,7 +2,7 @@
 name: fast-path
 description: Low-gear delivery for spikes, throwaways, small tasks, and bugfixes where
   clock beats architecture. Walking skeleton test-first with reduced ceremony — one
-  critic pass, no slice-list ceremony. Honors the codebase's existing architecture;
+  critic pass, no wave-plan ceremony. Honors the codebase's existing architecture;
   skips the hexagon only on a greenfield throwaway. Chosen at Gate 0.
 ---
 

@@ -115,7 +115,7 @@ def order_routes(orders: OrderService) -> APIRouter:
 ```
 
 A plain `def` endpoint runs in FastAPI's threadpool, right for a blocking driver; `async def`
-only when everything it calls awaits (`references/concurrency-security.md`).
+only when everything it calls awaits (`concurrency-security.md`).
 
 ## Errors to status, at the edge, once
 

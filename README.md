@@ -198,7 +198,7 @@ blocklist as a brake. Do that only if you accept the risk.
 After installing or updating, in a fresh session:
 
 - `/plugin` lists delivery-doctrine, enabled, with no errors.
-- `/context` shows the doctrine text and the plugin's skills and agents.
+- Ask "what gear are we in?"; the answer comes from the doctrine.
 - `/hooks` shows the SessionStart, UserPromptSubmit and PreToolUse hooks.
 - On a scratch branch, `git push --force` is refused, pointing to `--force-with-lease`.
 
@@ -225,7 +225,8 @@ Then restart your sessions; a running session keeps the version it started with.
 Issues and pull requests are welcome.
 
 1. Fork the repository and work on a branch.
-2. Keep to its conventions: no comments in code examples, each `SKILL.md` at most 120 lines with
+2. Keep to its conventions: no comments in code examples beyond the ✅/❌ labels that mark
+   teaching examples, each `SKILL.md` at most 120 lines with
    depth in `references/`, plain wording, and credit in `THIRD_PARTY_NOTICES.md` for anything
    adapted from elsewhere.
 3. Run the evals and add a case when your change alters behaviour:

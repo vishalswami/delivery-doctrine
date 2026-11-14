@@ -30,7 +30,10 @@ rules = [
 
 # Execution-hygiene rules match only what the shell would run: heredoc bodies and
 # quoted strings (commit messages, PR bodies, `bash -c` scripts) are blanked first,
-# and test commands are recognised only at command position.
+# and test commands are recognised only at command position. The destructive rules
+# blank quoted text too, unless something in the command can execute a string
+# ($(...), backticks, sh -c, eval, ssh, xargs, an interpreter's -c or -e): then the
+# raw text is matched, so a quoted destructive command handed to a shell is caught.
 
 GO_VALUE_FLAGS = {"-run", "-skip", "-count", "-timeout", "-tags", "-p", "-parallel", "-cpu",
                   "-bench", "-benchtime", "-o", "-coverprofile", "-covermode", "-coverpkg",
@@ -112,12 +115,20 @@ def hygiene(command):
     return None
 
 
+EVALUATES = re.compile(r'\$\(|`|\b(ba|z|da|k)?sh\b|\beval\b|\bexec\b|\bsource\b|\bssh\b|\bxargs\b|\bwatch\b|\bpython3?\s+-c\b|\bperl\b|\bruby\b|\bnode\s+-e\b')
+
+
+def destructive_text(command):
+    return command if EVALUATES.search(command) else runnable(command)
+
+
 reason = hygiene(cmd)
 if reason:
     rules.append((r'', reason))
 
+checked = destructive_text(cmd)
 for pattern, reason in rules:
-    if re.search(pattern, cmd):
+    if re.search(pattern, checked if pattern else cmd):
         print(json.dumps({
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
