@@ -107,7 +107,7 @@ the main session.
 | Hook | What it does |
 |---|---|
 | Doctrine | Injects the method at session start, plus your profiles (below) |
-| Guard | Blocks destructive commands (`rm -rf`, `sudo`, force-push, `git reset --hard`, …), wide local test runs and sleep-poll loops |
+| Guard | Blocks destructive commands (`rm -rf`, `sudo`, force-push, `git reset --hard`, …), wide local test runs and sleep-poll loops. It matches the raw command, so a commit message that merely mentions one is refused too; write the message to a file and use `git commit -F <file>` |
 | Anchor | Past 150k tokens of context, restates five core rules next to each message, where a long context still attends to them |
 | Keep-awake | macOS: stops the machine idle-sleeping while a session runs |
 

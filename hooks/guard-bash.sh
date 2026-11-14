@@ -12,29 +12,28 @@ except json.JSONDecodeError:
 cmd = data.get("tool_input", {}).get("command", "") or ""
 
 rules = [
-    (r'\brm\s+(-[a-zA-Z]*\s+)*-[a-zA-Z]*r[a-zA-Z]*f|\brm\s+(-[a-zA-Z]*\s+)*-[a-zA-Z]*f[a-zA-Z]*r',
+    (r'\brm\s+(-[a-zA-Z]*\s+)*-[a-zA-Z]*[rR][a-zA-Z]*f|\brm\s+(-[a-zA-Z]*\s+)*-[a-zA-Z]*f[a-zA-Z]*[rR]',
      "recursive force delete (rm -rf) is blocked; delete specific paths deliberately"),
     (r'\bsudo\b', "sudo is blocked; run without elevation"),
     (r'\bpkill\b|\bkillall\b',
      "blanket process kills are blocked; kill only the specific PID you own (see execution-hygiene)"),
-    (r'\bgit\s+push\b[^|;&]*\s--force(?!-with-lease)\b',
+    (r'\bgit\b(?:\s+-[cC]\s*\S+)*\s+push\b[^|;&\n]*\s--force(?!-with-lease|-if-includes)\b',
      "git push --force is blocked; use --force-with-lease"),
-    (r'\bgit\s+push\b[^|;&]*\s-f\b',
+    (r'\bgit\b(?:\s+-[cC]\s*\S+)*\s+push\b[^|;&\n]*\s-[a-zA-Z]*f[a-zA-Z]*\b',
      "git push -f is blocked; use --force-with-lease"),
-    (r'\bgit\s+push\b[^|;&]*\s\+\S',
+    (r'\bgit\b(?:\s+-[cC]\s*\S+)*\s+push\b[^|;&\n]*\s\+\S',
      "refspec force push (git push origin +branch) is blocked; use --force-with-lease"),
-    (r'\bgit\s+reset\s+--hard\b', "git reset --hard is blocked; use a safer recovery"),
-    (r'\bchmod\s+777\b', "chmod 777 is blocked; use a precise mode"),
-    (r'\bmkfs\b|\bdd\s+[^|;&]*\bof=/dev/', "destructive disk operations are blocked"),
+    (r'\bgit\b(?:\s+-[cC]\s*\S+)*\s+reset\b[^|;&\n]*\s--hard\b', "git reset --hard is blocked; use a safer recovery"),
+    (r'\bchmod\s+(?:-\S+\s+)*0*777\b', "chmod 777 is blocked; use a precise mode"),
+    (r'\bmkfs\b|\bdd\b[^|;&\n]*\bof=/dev/', "destructive disk operations are blocked"),
 ]
 
-# Execution-hygiene rules match only what the shell would run: heredoc bodies and
-# quoted strings (commit messages, PR bodies, `bash -c` scripts) are blanked first,
-# and test commands are recognised only at command position. The destructive rules
-# match the raw command, failing closed; the only text removed first is message text that
-# cannot run: a git commit/tag/log or gh pr/issue/release message flag's single-quoted or
-# expansion-free double-quoted argument, and a quoted-delimiter heredoc fed to
-# `git commit -F -` or `gh ... --body-file -`, ended exactly as bash ends it.
+# Destructive rules match the raw command, failing closed: nothing is blanked, so a commit
+# message that mentions one of these commands is refused too (write it to a file and use
+# `git commit -F <file>`). Simple quoted words are unquoted first, so quoting a flag or a
+# command name does not slip past. Execution-hygiene rules match only what the shell would
+# run: heredoc bodies and quoted strings are blanked first, and test commands are recognised
+# only at command position.
 
 GO_VALUE_FLAGS = {"-run", "-skip", "-count", "-timeout", "-tags", "-p", "-parallel", "-cpu",
                   "-bench", "-benchtime", "-o", "-coverprofile", "-covermode", "-coverpkg",
@@ -116,40 +115,36 @@ def hygiene(command):
     return None
 
 
-MESSAGE_COMMAND = (r"(?:\bgit\s+commit\b|\bgit\s+tag\b|\bgit\s+log\b"
-                   r"|\bgh\s+(?:pr|issue|release)\s+\w+\b)")
-MESSAGE_FLAG = r"(?:-m|--message|--grep|-t|--title|-b|--body|-n|--notes)"
-MESSAGE_ARG = re.compile(MESSAGE_COMMAND + r"[^;&|\n]*?\s" + MESSAGE_FLAG + r"(?:=|\s+)"
-                         r"('[^']*'|\"[^\"\\$`]*\")")
-MESSAGE_HEREDOC = re.compile(r"(?:\bgit\s+commit\b[^;&|\n]*\s-F\s*-|\bgh\s+(?:pr|issue|release)"
-                             r"\s+\w+\b[^;&|\n]*\s--body-file\s*-)[^;&|\n]*?<<(-?)\s*'(\w+)'[^\n]*\n")
+SIMPLE_QUOTED = re.compile(r"'([^'\s\\]*)'|\"([^\"\s\\$`]*)\"")
+SEPARATOR = re.compile(r"[;&|\n()`]|\$\(")
 
 
-def without_messages(command):
-    previous = None
-    while previous != command:
-        previous = command
-        command = MESSAGE_ARG.sub(lambda m: m.group(0)[:m.start(1) - m.start(0)] + "Q", command)
-    out, pos = [], 0
-    for m in MESSAGE_HEREDOC.finditer(command):
-        if m.start() < pos:
-            continue
-        strip_tabs, delimiter = m.group(1) == "-", m.group(2)
-        lines = command[m.end():].split("\n")
-        for i, line in enumerate(lines):
-            if (line.lstrip("\t") if strip_tabs else line) == delimiter:
-                out.append(command[pos:m.end()])
-                pos = m.end() + sum(len(l) + 1 for l in lines[:i])
-                break
-    out.append(command[pos:])
-    return "".join(out)
+def unquoted(command):
+    return SIMPLE_QUOTED.sub(lambda m: m.group(1) if m.group(1) is not None else m.group(2), command)
+
+
+def recursive_force_rm(command):
+    for segment in SEPARATOR.split(command):
+        words = segment.split()
+        for i, word in enumerate(words):
+            if word.lstrip("\\").rsplit("/", 1)[-1] != "rm":
+                continue
+            flags = [w for w in words[i + 1:] if w.startswith("-")]
+            short = "".join(f[1:] for f in flags if not f.startswith("--"))
+            recursive = "r" in short or "R" in short or "--recursive" in flags
+            force = "f" in short or "--force" in flags
+            if recursive and force:
+                return True
+    return False
 
 
 reason = hygiene(cmd)
 if reason:
     rules.append((r'', reason))
 
-checked = without_messages(cmd)
+checked = unquoted(cmd)
+if recursive_force_rm(checked):
+    rules.insert(0, (r'', "recursive force delete (rm -rf) is blocked; delete specific paths deliberately"))
 for pattern, reason in rules:
     if re.search(pattern, checked if pattern else cmd):
         print(json.dumps({
