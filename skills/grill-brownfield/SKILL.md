@@ -29,33 +29,10 @@ During codebase exploration, also look for existing documentation:
 
 ### File structure
 
-Most repos have a single context:
-
-```
-/
-├── CONTEXT.md
-├── docs/
-│   └── adr/
-│       ├── 0001-event-sourced-orders.md
-│       └── 0002-postgres-for-write-model.md
-└── src/
-```
-
-If a `CONTEXT-MAP.md` exists at the root, the repo has multiple contexts. The map points to where each one lives:
-
-```
-/
-├── CONTEXT-MAP.md
-├── docs/
-│   └── adr/                          ← system-wide decisions
-├── src/
-│   ├── ordering/
-│   │   ├── CONTEXT.md
-│   │   └── docs/adr/                 ← context-specific decisions
-│   └── billing/
-│       ├── CONTEXT.md
-│       └── docs/adr/
-```
+Most repos have one context: a `CONTEXT.md` glossary at the root and decisions in
+`docs/adr/` (`0001-event-sourced-orders.md`). A root `CONTEXT-MAP.md` means several contexts:
+it points to each one's home (`src/ordering/`, `src/billing/`), each with its own glossary and
+`docs/adr/` for context-specific decisions; the root `docs/adr/` keeps system-wide ones.
 
 ### Context files
 
