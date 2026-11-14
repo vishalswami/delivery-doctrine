@@ -14,6 +14,8 @@ metadata:
 
 # Spring Boot Skill
 
+Examples carry ✅/❌ labels to teach; delivered code carries none.
+
 Enterprise Spring Boot 4.x development with focus on clean architecture and production-ready code.
 
 ## Core Workflow
@@ -121,22 +123,15 @@ public record ProductResponse(Long id, String name, BigDecimal price) {
 ### Global Exception Handler
 ```java
 @RestControllerAdvice
-public class GlobalExceptionHandler {
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleValidation(MethodArgumentNotValidException ex) {
-        return ex.getBindingResult().getFieldErrors().stream()
-            .collect(Collectors.toMap(FieldError::getField,
-                    error -> error.getDefaultMessage() != null ? error.getDefaultMessage() : "Invalid"));
-    }
-
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(EntityNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Map<String, String> handleNotFound(EntityNotFoundException ex) {
-        return Map.of("error", ex.getMessage());
+    public ProblemDetail handleNotFound(EntityNotFoundException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 }
 ```
+The base class answers Spring MVC's own exceptions as `ProblemDetail`; validation field
+errors and the logged 500 branch are in `references/web.md`.
 
 ### Test Slice
 ```java

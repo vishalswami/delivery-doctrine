@@ -11,13 +11,8 @@ description: Use when writing or reviewing Go — enforces idiomatic error wrapp
 
 The Go quality profile. Loaded at implementation time for Go work. Pairs with `delivery-doctrine:go-testing`.
 
-**House conventions first**, for consistency, over this profile and `go-testing`: a structure
-below that the house has under other names keeps the house's names; one it lacks, introduce.
-A house rule that is plainly bad practice (it causes bugs, a security or correctness risk, or
-works against consistency) is neither followed nor bypassed silently: name it, give the reason,
-propose the better practice and let the user decide. Read the context file and house docs
-before judging; a choice they record as deliberate is not a finding. (testify is a legitimate
-house choice: `go-testing`'s default, which a repository profile can switch off.)
+House names and structure first (`delivery-doctrine:ddd-hexagonal-reviewer`, applicability guard):
+conform to the house's names, introduce what it lacks, name a plainly bad house rule rather than follow or bypass it.
 
 ## Rules
 - **Formatting delegated** to gofmt/goimports (or `golangci-lint fmt` on v2 configs);
@@ -91,7 +86,8 @@ house choice: `go-testing`'s default, which a repository profile can switch off.
   that needs an unexported rule gets it exported as a function, never an `export_test.go` leak.
 - **The domain imports inward only**: the stdlib, other domain packages, value libraries such
   as `github.com/google/uuid`. No ORM models, no generated wire types, no framework helpers;
-  event DTO builders live with the publisher. Pin it where the house runs golangci-lint:
+  event DTO builders live with the publisher. Pin it where the house runs golangci-lint;
+  `allow` matches by prefix, so each domain package it may import is listed exact (`$`):
 
 ```yaml
 linters:
@@ -101,7 +97,7 @@ linters:
         order-domain:
           list-mode: strict
           files: ["**/internal/order/*.go", "!$test"]
-          allow: [$gostd, github.com/google/uuid]
+          allow: [$gostd, github.com/google/uuid, github.com/acme/shop/internal/money$]
 ```
 - **`cmd/<app>/main.go` is the composition root**: it reads config, builds the adapters and
   passes them to constructors, so every dependency is visible in one place and a test can

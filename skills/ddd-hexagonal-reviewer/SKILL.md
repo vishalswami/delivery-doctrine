@@ -20,12 +20,15 @@ a greenfield throwaway with no architecture to honor.
   the repository profile, and the specs and ADRs they point to. A choice recorded there as
   deliberate is not a finding (a SQL-only status guard that avoids a read-update-persist
   race); flag only where the code departs from its own record.
-- **House conventions first, for consistency.** Where the house has a structure under other
-  names, conform to its names; where it lacks one these rules or the language profile call
-  for, introduce it inside the house's architecture, never a different architecture (below).
-  A house rule that is plainly bad practice (bugs, security or correctness risk, or working
-  against consistency) is neither followed nor bypassed silently: a finding that names it,
-  gives the reason and proposes the better practice for the user to decide.
+- **House names and structure first, for consistency** (the canonical rule; the language
+  profiles point here). Where the house has a structure under other names, conform to its
+  names; where it lacks one these rules or the language profile call for, introduce it
+  inside the house's architecture, never a different architecture (below). A house rule
+  that is plainly bad practice (bugs, security or correctness risk, or working against
+  consistency) is neither followed nor bypassed silently: a finding that names it, gives
+  the reason and proposes the better practice for the user to decide. This governs names
+  and structure only; the doctrine's hard rules (zero comments, test-first) hold in every
+  house.
 - **Greenfield with hexagonal chosen, or brownfield whose house style is hexagonal**
   → apply the hexagonal rules below.
 - **Brownfield with a different established architecture** → do NOT impose hexagonal.

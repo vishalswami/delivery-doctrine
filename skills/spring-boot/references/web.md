@@ -117,27 +117,41 @@ public record UserResponse(
 
 ## Global Exception Handling
 
+Errors leave as `ProblemDetail` (RFC 9457). Extending `ResponseEntityExceptionHandler` covers
+Spring MVC's own exceptions; it already maps `MethodArgumentNotValidException`, so field errors
+are added by overriding `handleMethodArgumentNotValid` (a second `@ExceptionHandler` for it is
+an ambiguous mapping at startup). Each domain exception gets one `@ExceptionHandler` returning
+`ProblemDetail`; Spring sets the status from it and `instance` from the request path, and
+`setProperty` entries render as top-level JSON fields. Only the 500 branch logs: the others are
+expected outcomes the response already reports.
+
 ```java
 @RestControllerAdvice
 @Slf4j
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(
-            ResourceNotFoundException ex, WebRequest request) {
-        log.error("Resource not found: {}", ex.getMessage());
-        ErrorResponse error = new ErrorResponse(
-            HttpStatus.NOT_FOUND.value(),
-            ex.getMessage(),
-            request.getDescription(false),
-            LocalDateTime.now()
-        );
-        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    public ProblemDetail handleNotFound(ResourceNotFoundException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ValidationErrorResponse> handleValidation(
-            MethodArgumentNotValidException ex) {
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex) {
+        return ProblemDetail.forStatusAndDetail(
+            HttpStatus.CONFLICT, "Data integrity violation - resource may already exist");
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ProblemDetail handleUnexpected(Exception ex) {
+        log.error("Unexpected error", ex);
+        return ProblemDetail.forStatusAndDetail(
+            HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException ex, HttpHeaders headers,
+            HttpStatusCode status, WebRequest request) {
         Map<String, String> errors = ex.getBindingResult()
             .getFieldErrors()
             .stream()
@@ -145,58 +159,13 @@ public class GlobalExceptionHandler {
                 FieldError::getField,
                 error -> error.getDefaultMessage() != null
                     ? error.getDefaultMessage()
-                    : "Invalid value"
-            ));
-
-        ValidationErrorResponse response = new ValidationErrorResponse(
-            HttpStatus.BAD_REQUEST.value(),
-            "Validation failed",
-            errors,
-            LocalDateTime.now()
-        );
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorResponse> handleDataIntegrity(
-            DataIntegrityViolationException ex, WebRequest request) {
-        log.error("Data integrity violation", ex);
-        ErrorResponse error = new ErrorResponse(
-            HttpStatus.CONFLICT.value(),
-            "Data integrity violation - resource may already exist",
-            request.getDescription(false),
-            LocalDateTime.now()
-        );
-        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGlobalException(
-            Exception ex, WebRequest request) {
-        log.error("Unexpected error", ex);
-        ErrorResponse error = new ErrorResponse(
-            HttpStatus.INTERNAL_SERVER_ERROR.value(),
-            "An unexpected error occurred",
-            request.getDescription(false),
-            LocalDateTime.now()
-        );
-        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+                    : "Invalid value",
+                (first, second) -> first));
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, "Validation failed");
+        problem.setProperty("errors", errors);
+        return handleExceptionInternal(ex, problem, headers, status, request);
     }
 }
-
-record ErrorResponse(
-    int status,
-    String message,
-    String path,
-    LocalDateTime timestamp
-) {}
-
-record ValidationErrorResponse(
-    int status,
-    String message,
-    Map<String, String> errors,
-    LocalDateTime timestamp
-) {}
 ```
 
 ## Custom Validation

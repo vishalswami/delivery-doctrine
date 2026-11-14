@@ -197,23 +197,22 @@ Since Spring Data JPA 4, `Specification.where(...)` rejects `null`: start from `
 
 ## Transaction Management
 
-`createOrder` reserves stock and saves the order in a single transaction; an exception from any step (an `InsufficientStockException` from `reserveStock`) rolls all of it back. The payment is a remote call, so it runs after the commit, never inside the transaction: inside, it holds the connection for the whole call, and a commit that fails after the payment succeeded charges for an order that does not exist. Call it once `createOrder` has returned, or write an outbox row in this transaction and let a relay make the call. `logOrderEvent` uses a separate transaction (`REQUIRES_NEW`), so it commits even if the parent rolls back. `completeOrder` does not roll back if the notification fails (`noRollbackFor`).
+`createOrder` reserves stock and saves the order in a single transaction; an exception from any step (an `InsufficientStockException` from `reserveStock`) rolls all of it back. The payment is a remote call, so it runs after the commit, never inside the transaction: inside, it holds the connection for the whole call, and a commit that fails after the payment succeeded charges for an order that does not exist. Call it once `createOrder` has returned, or write an outbox row in this transaction and let a relay make the call. `logOrderEvent` uses a separate transaction (`REQUIRES_NEW`), so it commits even if the parent rolls back. `completeOrder` marks the order completed and publishes `OrderCompleted`; the `@TransactionalEventListener` sends the email only after the commit (`AFTER_COMMIT`, the default phase), so a rolled-back completion sends nothing and a failed send cannot undo the completion. The listener is not invoked when no transaction is running unless it sets `fallbackExecution = true`.
 
 ```java
 @Service
-@Slf4j
 @Transactional(readOnly = true)
 public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderEventRepository orderEventRepository;
     private final InventoryService inventoryService;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher events;
 
-    public OrderService(OrderRepository orderRepository, OrderEventRepository orderEventRepository, InventoryService inventoryService, NotificationService notificationService) {
+    public OrderService(OrderRepository orderRepository, OrderEventRepository orderEventRepository, InventoryService inventoryService, ApplicationEventPublisher events) {
         this.orderRepository = orderRepository;
         this.orderEventRepository = orderEventRepository;
         this.inventoryService = inventoryService;
-        this.notificationService = notificationService;
+        this.events = events;
     }
     
     @Transactional
@@ -237,19 +236,29 @@ public class OrderService {
         orderEventRepository.save(orderEvent);
     }
 
-    @Transactional(noRollbackFor = NotificationException.class)
+    @Transactional
     public void completeOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
-        order.setStatus(OrderStatus.COMPLETED);
-        orderRepository.save(order);
+        order.complete();
+        events.publishEvent(new OrderCompleted(order.getId()));
+    }
+}
 
-        try {
-            notificationService.sendCompletionEmail(order);
-        } catch (NotificationException e) {
-            log.error("Failed to send notification for order {}", orderId, e);
-        }
+public record OrderCompleted(Long orderId) {}
+
+@Component
+public class OrderCompletedNotifier {
+    private final NotificationService notificationService;
+
+    public OrderCompletedNotifier(NotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(OrderCompleted event) {
+        notificationService.sendCompletionEmail(event.orderId());
     }
 }
 ```

@@ -13,12 +13,8 @@ The Python quality profile. Loaded at implementation time for Python work (the l
 is chosen after the grill, per right-sizing — the grill and slicing are language-agnostic).
 Pairs with `delivery-doctrine:pytest-testing`.
 
-**House conventions first**, for consistency, over this profile and `pytest-testing`: a
-structure below that the house has under other names keeps the house's names; one it lacks,
-introduce. A house rule that is plainly bad practice (it causes bugs, a security or correctness
-risk, or works against consistency) is neither followed nor bypassed silently: name it, give
-the reason, propose the better practice and let the user decide. Read the context file and
-house docs before judging; a choice they record as deliberate is not a finding.
+House names and structure first (`delivery-doctrine:ddd-hexagonal-reviewer`, applicability guard):
+conform to the house's names, introduce what it lacks, name a plainly bad house rule rather than follow or bypass it.
 
 ## Rules
 - **Type hints everywhere.** Annotate every function signature and non-trivial local;
@@ -73,7 +69,7 @@ class Money:
 
 ## Layout and wiring
 - **Package by feature under `src/<pkg>/`**: `orders/` holds the domain types, ports and
-  service; adapters sit beside it by mechanism (`orders/postgres.py`, `orders/http.py`, or a
+  service; adapters sit beside it by mechanism (`orders/postgres.py`, `orders/httpapi.py`, or a
   subpackage). No `ports/` or `adapters/` packages unless the house has them. `__all__`
   names a module's public surface; `_name` marks internals.
 - **The consumer declares the port as a `Protocol`** (`class OrderStore(Protocol)` in the

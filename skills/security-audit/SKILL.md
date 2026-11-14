@@ -7,6 +7,8 @@ description: Java security checklist covering OWASP Top 10, input validation, in
 
 # Security Audit Skill
 
+Examples carry ✅/❌ labels to teach; delivered code carries none.
+
 Security checklist for Java applications based on OWASP Top 10 and secure coding practices.
 
 ## When to Use
@@ -266,8 +268,9 @@ public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
 
 ### Quarkus
 
+In `application.properties`:
+
 ```properties
-# application.properties
 quarkus.http.csrf.enabled=true
 quarkus.http.csrf.cookie-name=XSRF-TOKEN
 ```
@@ -359,7 +362,7 @@ String apiKey = secretsManager.getSecret("api-key");
 ### Configuration Files
 
 ```yaml
-# ✅ GOOD: Reference environment variables
+# ✅ GOOD: reference environment variables
 spring:
   datasource:
     password: ${DB_PASSWORD}
@@ -367,16 +370,17 @@ spring:
 api:
   key: ${API_KEY}
 
-# ❌ BAD: Hardcoded in application.yml
+# ❌ BAD: hardcoded in application.yml, never
 spring:
   datasource:
-    password: admin123  # NEVER!
+    password: admin123
 ```
 
 ### .gitignore
 
+Never commit these:
+
 ```gitignore
-# Never commit these
 .env
 *.pem
 *.key
@@ -446,24 +450,23 @@ public class JacksonConfig {
         </execution>
     </executions>
     <configuration>
-        <failBuildOnCVSS>7</failBuildOnCVSS>  <!-- Fail on high severity -->
+        <failBuildOnCVSS>7</failBuildOnCVSS>
     </configuration>
 </plugin>
 ```
 
-**Run:**
+`failBuildOnCVSS` 7 fails the build on high severity. Run it; the report lands in
+`target/dependency-check-report.html`:
 ```bash
 mvn dependency-check:check
-# Report: target/dependency-check-report.html
 ```
 
 ### Keep Dependencies Updated
 
-```bash
-# Check for updates
-mvn versions:display-dependency-updates
+Check for updates, then update to the latest releases:
 
-# Update to latest
+```bash
+mvn versions:display-dependency-updates
 mvn versions:use-latest-releases
 ```
 

@@ -7,6 +7,8 @@ description: Comprehensive code review for Java - clean code principles, API con
 
 # Code Quality Review Skill
 
+Examples carry ✅/❌ labels to teach; delivered code carries none.
+
 Systematic code review combining clean code principles, API design, and Java best practices.
 
 > Defers to `delivery-doctrine:readable-java-style` on method decomposition and comments: no comments

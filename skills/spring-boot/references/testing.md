@@ -64,7 +64,6 @@ class UserServiceTest {
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureRestTestClient
 @ActiveProfiles("test")
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class UserIntegrationTest {
 
     @Autowired
@@ -79,7 +78,6 @@ class UserIntegrationTest {
     }
 
     @Test
-    @Order(1)
     void givenValidRequest_whenPostUsers_thenCreatedWithLocation() {
         UserCreateRequest request = new UserCreateRequest(
             "test@example.com",
@@ -101,7 +99,6 @@ class UserIntegrationTest {
     }
 
     @Test
-    @Order(2)
     void givenInvalidRequest_whenPostUsers_thenBadRequestWithErrors() {
         UserCreateRequest request = new UserCreateRequest(
             "invalid-email",
@@ -395,20 +392,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
   security:
     user:
       name: test
       password: test
-
-logging:
-  level:
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
 ```
+
+Turn `org.hibernate.SQL` on (`DEBUG`) when debugging a query, and off again before commit.
 
 **Test configuration class** (a low-cost BCrypt strength keeps tests fast)
 

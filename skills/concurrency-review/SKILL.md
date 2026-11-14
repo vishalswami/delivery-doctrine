@@ -7,6 +7,8 @@ description: Review Java concurrency code for thread safety, race conditions, de
 
 # Concurrency Review Skill
 
+Examples carry ✅/❌ labels to teach; delivered code carries none.
+
 Review Java concurrent code for correctness, safety, and modern best practices.
 
 ## Why This Matters
@@ -204,8 +206,10 @@ while the first is still held. Under concurrency, N threads each holding one con
 and waiting for another exhaust the pool and deadlock — the symptom is a test that hangs
 until timeout, not an error.
 
+Turn it off; it is the recommended production setting anyway, and Spring logs a warning
+when it is left unset:
+
 ```properties
-# ✅ the recommended production setting anyway; Spring logs a warning if unset
 spring.jpa.open-in-view=false
 ```
 
@@ -465,22 +469,15 @@ map.compute(key1, (k, v) -> {
 
 ## Analysis Commands
 
+In order: `synchronized` blocks, `@Async` methods, `volatile` fields, thread pool creation,
+`CompletableFuture` chains without error handling, and `ThreadLocal` (consider `ScopedValue`
+on Java 21+).
+
 ```bash
-# Find synchronized blocks
 grep -rn "synchronized" --include="*.java"
-
-# Find @Async methods
 grep -rn "@Async" --include="*.java"
-
-# Find volatile fields
 grep -rn "volatile" --include="*.java"
-
-# Find thread pool creation
 grep -rn "Executors\.\|ThreadPoolExecutor\|ExecutorService" --include="*.java"
-
-# Find CompletableFuture without error handling
 grep -rn "CompletableFuture\." --include="*.java" | grep -v "exceptionally\|handle\|whenComplete"
-
-# Find ThreadLocal (consider ScopedValue in Java 21+)
 grep -rn "ThreadLocal" --include="*.java"
 ```

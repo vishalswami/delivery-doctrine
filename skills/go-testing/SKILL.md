@@ -31,9 +31,10 @@ share mutable state; Go 1.22+ loop variables are per-iteration — no `tt := tt`
 - Assert outcomes, not call counts, unless the interaction IS the contract.
 
 ## Assertions
-testify: `require` for preconditions that make the rest meaningless, `assert` for
-outcome checks. Never `require` inside a spawned goroutine (`FailNow` only works on the
-test goroutine).
+testify by default: `require` for preconditions that make the rest meaningless, `assert`
+for outcome checks. It is a house choice over the Google style guide's plain
+`if got != want { t.Errorf(...) }`; a repository profile that says otherwise wins. Never
+`require` inside a spawned goroutine (`FailNow` only works on the test goroutine).
 
 ## Helpers and cleanup
 Test helpers take `*testing.T` and call `t.Helper()`; register teardown with `t.Cleanup`

@@ -14,12 +14,8 @@ The Java profile's domain and hexagon. `delivery-doctrine:spring-boot` shows Spr
 this skill keeps Spring out of the domain. Loaded at implementation and review time for Java
 work, beside `delivery-doctrine:readable-java-style` and `delivery-doctrine:gwt-testing`.
 
-**House conventions first**, for consistency, over the Java profile: a structure below that
-the house has under other names keeps the house's names; one it lacks, introduce. A house rule
-that is plainly bad practice (it causes bugs, a security or correctness risk, or works against
-consistency) is neither followed nor bypassed silently: name it, give the reason, propose the
-better practice and let the user decide. Read the context file and house docs before judging;
-a choice they record as deliberate is not a finding.
+House names and structure first (`delivery-doctrine:ddd-hexagonal-reviewer`, applicability guard):
+conform to the house's names, introduce what it lacks, name a plainly bad house rule rather than follow or bypass it.
 
 ## Domain types
 - **Value objects are records.** The compact constructor checks the invariant and throws a
@@ -62,13 +58,23 @@ public record Money(BigDecimal amount, Currency currency) {
   case where hexagonal is the house style (`delivery-doctrine:ddd-hexagonal-reviewer`).
 - **`@Configuration` wires the domain** from outside it (`orders.config` or the application
   package). Domain services are plain classes built in `@Bean` methods
-  (`PlaceOrder placeOrder(OrderStore store, Clock clock)` returns
-  `new PlaceOrderService(store, clock)`), so they carry no `@Service`.
-- **Transactions are opened outside the domain**: `@Transactional` on the application or
-  adapter bean that owns the unit of work (or a `TransactionTemplate`), never on a domain
-  type. No remote call inside one: it holds the connection for the call, and a commit that
-  fails after the call succeeded leaves the remote side changed. Call after commit, or write
-  an outbox row in the transaction.
+  (`PlaceOrderService placeOrder(OrderStore store, Clock clock)` returns
+  `new PlaceOrderService(store, clock)`; the return type is `PlaceOrder` where that inbound
+  port exists), so they carry no `@Service`.
+- **The persistence adapter owns the transaction.** One port call is one unit of work:
+  `@Transactional` on the adapter method (`JpaOrderStore.place`), never on a domain type. A
+  use case spanning several port calls depends on a plain domain port, implemented in
+  `orders.persistence` as `template.execute(status -> work.get())` on a `TransactionTemplate`,
+  so the domain imports no Spring and the ArchUnit rule below holds:
+
+```java
+public interface Transactions {
+    <T> T inTransaction(Supplier<T> work);
+}
+```
+  No remote call inside a transaction: it holds the connection for the call, and a commit
+  that fails after the call succeeded leaves the remote side changed. Call after commit, or
+  write an outbox row in the transaction.
 - **JPA entities are adapter types.** `OrderEntity` in `orders.persistence` maps to and from
   the `Order` aggregate, so the domain never sees lazy proxies or setters. If the house maps
   JPA straight onto the aggregate, follow it and say so in the slice.
@@ -88,6 +94,7 @@ class OrdersArchitectureTest {
             "com.acme.orders.web..", "com.acme.orders.persistence..");
 }
 ```
+  ArchUnit rules are named for the invariant they pin; GWT names are for `@Test` methods.
 
 ## Format and static analysis
 Spotless with google-java-format or palantir-java-format, whichever the house pins
