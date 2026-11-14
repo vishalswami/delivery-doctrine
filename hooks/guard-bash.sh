@@ -31,9 +31,10 @@ rules = [
 # Execution-hygiene rules match only what the shell would run: heredoc bodies and
 # quoted strings (commit messages, PR bodies, `bash -c` scripts) are blanked first,
 # and test commands are recognised only at command position. The destructive rules
-# blank quoted text too, unless something in the command can execute a string
-# ($(...), backticks, sh -c, eval, ssh, xargs, an interpreter's -c or -e): then the
-# raw text is matched, so a quoted destructive command handed to a shell is caught.
+# match the raw command, failing closed; the only text removed first is message text that
+# cannot run: a git commit/tag/log or gh pr/issue/release message flag's single-quoted or
+# expansion-free double-quoted argument, and a quoted-delimiter heredoc fed to
+# `git commit -F -` or `gh ... --body-file -`, ended exactly as bash ends it.
 
 GO_VALUE_FLAGS = {"-run", "-skip", "-count", "-timeout", "-tags", "-p", "-parallel", "-cpu",
                   "-bench", "-benchtime", "-o", "-coverprofile", "-covermode", "-coverpkg",
@@ -115,18 +116,40 @@ def hygiene(command):
     return None
 
 
-EVALUATES = re.compile(r'\$\(|`|\b(ba|z|da|k)?sh\b|\beval\b|\bexec\b|\bsource\b|\bssh\b|\bxargs\b|\bwatch\b|\bpython3?\s+-c\b|\bperl\b|\bruby\b|\bnode\s+-e\b')
+MESSAGE_COMMAND = (r"(?:\bgit\s+commit\b|\bgit\s+tag\b|\bgit\s+log\b"
+                   r"|\bgh\s+(?:pr|issue|release)\s+\w+\b)")
+MESSAGE_FLAG = r"(?:-m|--message|--grep|-t|--title|-b|--body|-n|--notes)"
+MESSAGE_ARG = re.compile(MESSAGE_COMMAND + r"[^;&|\n]*?\s" + MESSAGE_FLAG + r"(?:=|\s+)"
+                         r"('[^']*'|\"[^\"\\$`]*\")")
+MESSAGE_HEREDOC = re.compile(r"(?:\bgit\s+commit\b[^;&|\n]*\s-F\s*-|\bgh\s+(?:pr|issue|release)"
+                             r"\s+\w+\b[^;&|\n]*\s--body-file\s*-)[^;&|\n]*?<<(-?)\s*'(\w+)'[^\n]*\n")
 
 
-def destructive_text(command):
-    return command if EVALUATES.search(command) else runnable(command)
+def without_messages(command):
+    previous = None
+    while previous != command:
+        previous = command
+        command = MESSAGE_ARG.sub(lambda m: m.group(0)[:m.start(1) - m.start(0)] + "Q", command)
+    out, pos = [], 0
+    for m in MESSAGE_HEREDOC.finditer(command):
+        if m.start() < pos:
+            continue
+        strip_tabs, delimiter = m.group(1) == "-", m.group(2)
+        lines = command[m.end():].split("\n")
+        for i, line in enumerate(lines):
+            if (line.lstrip("\t") if strip_tabs else line) == delimiter:
+                out.append(command[pos:m.end()])
+                pos = m.end() + sum(len(l) + 1 for l in lines[:i])
+                break
+    out.append(command[pos:])
+    return "".join(out)
 
 
 reason = hygiene(cmd)
 if reason:
     rules.append((r'', reason))
 
-checked = destructive_text(cmd)
+checked = without_messages(cmd)
 for pattern, reason in rules:
     if re.search(pattern, checked if pattern else cmd):
         print(json.dumps({
