@@ -2,6 +2,10 @@
 
 # Web Layer - Controllers & REST APIs
 
+Read when the slice adds or changes an endpoint or an outbound HTTP call. Controllers are
+inbound adapters in `<feature>.web` (`delivery-doctrine:java-domain`): they validate, map to a
+domain command, call the use case and map the result back. Examples use an `orders` feature.
+
 ## HTTP contract
 
 | Verb | For | Idempotent | Success status |
@@ -19,120 +23,71 @@ URL. Follow the versioning scheme the house or the requirements name and add non
 `/v1` nobody asked for is invented structure, and how to ship a breaking change is the API
 owners' decision.
 
-## REST Controller Pattern
-
+## Controller
 ```java
 @RestController
-@RequestMapping("/api/users")
-@Validated
-public class UserController {
-    private final UserService userService;
-    
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }
-    
-    @GetMapping
-    public ResponseEntity<Page<UserResponse>> getUsers(
-            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
-        Page<UserResponse> users = userService.findAll(pageable);
-        return ResponseEntity.ok(users);
+@RequestMapping("/orders")
+class OrderController {
+    private final PlaceOrder placeOrder;
+    private final FindOrders findOrders;
+
+    OrderController(PlaceOrder placeOrder, FindOrders findOrders) {
+        this.placeOrder = placeOrder;
+        this.findOrders = findOrders;
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getUser(@PathVariable Long id) {
-        UserResponse user = userService.findById(id);
-        return ResponseEntity.ok(user);
+    OrderResponse get(@PathVariable UUID id) {
+        return OrderResponse.from(findOrders.byId(new OrderId(id)));
+    }
+
+    @GetMapping
+    Page<OrderSummaryResponse> list(@RequestParam UUID customerId, @PageableDefault(size = 20) Pageable page) {
+        return findOrders.ofCustomer(new CustomerId(customerId), page).map(OrderSummaryResponse::from);
     }
 
     @PostMapping
-    public ResponseEntity<UserResponse> createUser(
-            @Valid @RequestBody UserCreateRequest request) {
-        UserResponse user = userService.create(request);
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(user.id())
-                .toUri();
-        return ResponseEntity.created(location).body(user);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<UserResponse> updateUser(
-            @PathVariable Long id,
-            @Valid @RequestBody UserUpdateRequest request) {
-        UserResponse user = userService.update(id, request);
-        return ResponseEntity.ok(user);
-    }
-
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteUser(@PathVariable Long id) {
-        userService.delete(id);
+    ResponseEntity<OrderResponse> place(@Valid @RequestBody PlaceOrderRequest request) {
+        Order order = placeOrder.handle(request.toCommand());
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+            .path("/{id}").buildAndExpand(order.id().value()).toUri();
+        return ResponseEntity.created(location).body(OrderResponse.from(order));
     }
 }
 ```
+- A missing order is a domain exception (`OrderNotFoundException`) mapped to 404 by the advice,
+  not an `Optional` unwrapped in the controller. List endpoints page; none returns a whole table.
+- A `Page` serialized straight to JSON publishes Spring's page shape as the contract; map it to
+  a record (`PageResponse<T>(List<T> items, long total)`) where the response format matters.
 
-## Request DTOs with Validation
-
+## Request and response records
 ```java
-public record UserCreateRequest(
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email must be valid")
-    String email,
+record PlaceOrderRequest(
+    @NotNull UUID customerId,
+    @NotEmpty List<@Valid LineRequest> lines) {
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, max = 100, message = "Password must be 8-100 characters")
-    @Pattern(regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).*$",
-             message = "Password must contain uppercase, lowercase, and digit")
-    String password,
+    PlaceOrderCommand toCommand() {
+        return new PlaceOrderCommand(new CustomerId(customerId), lines.stream().map(LineRequest::toLine).toList());
+    }
+}
 
-    @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 50)
-    @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "Username must be alphanumeric")
-    String username,
-
-    @Min(value = 18, message = "Must be at least 18")
-    @Max(value = 120, message = "Must be at most 120")
-    Integer age
-) {}
-
-public record UserUpdateRequest(
-    @Email(message = "Email must be valid")
-    String email,
-
-    @Size(min = 3, max = 50)
-    String username
-) {}
-```
-
-## Response DTOs
-
-```java
-public record UserResponse(
-    Long id,
-    String email,
-    String username,
-    Integer age,
-    Boolean active,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt
-) {
-    public static UserResponse from(User user) {
-        return new UserResponse(
-            user.getId(),
-            user.getEmail(),
-            user.getUsername(),
-            user.getAge(),
-            user.getActive(),
-            user.getCreatedAt(),
-            user.getUpdatedAt()
-        );
+record OrderResponse(UUID id, String status, BigDecimal total) {
+    static OrderResponse from(Order order) {
+        return new OrderResponse(order.id().value(), order.status().name(), order.total().amount());
     }
 }
 ```
+- Bean Validation annotations live on request records, never on domain types; the domain
+  constructor still keeps its own invariant. Validate the whole range, not the example value
+  (`@Positive`, not `@Min(1)` when zero and negatives are both wrong; `@Size(max = ...)` on every
+  string and list).
+- A custom constraint (`@Constraint(validatedBy = ...)` plus a `ConstraintValidator`) is for a shape
+  rule several requests share. A constraint that queries the database (`@UniqueEmail`) is a
+  check-then-act race: uniqueness is a unique index, and its `DataIntegrityViolationException`
+  maps to 409.
+- Response records never expose JPA entities: lazy proxies, internal columns and N+1 queries leak.
 
-## Global Exception Handling
+## Errors as ProblemDetail
 
 Errors leave as `ProblemDetail` (RFC 9457). Extending `ResponseEntityExceptionHandler` covers
 Spring MVC's own exceptions; it already maps `MethodArgumentNotValidException`, so field errors
@@ -144,39 +99,34 @@ expected outcomes the response already reports.
 
 ```java
 @RestControllerAdvice
-@Slf4j
-public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+class OrdersExceptionHandler extends ResponseEntityExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(OrdersExceptionHandler.class);
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ProblemDetail handleNotFound(ResourceNotFoundException ex) {
+    @ExceptionHandler(OrderNotFoundException.class)
+    ProblemDetail notFound(OrderNotFoundException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex) {
-        return ProblemDetail.forStatusAndDetail(
-            HttpStatus.CONFLICT, "Data integrity violation - resource may already exist");
+    @ExceptionHandler(CreditLimitExceededException.class)
+    ProblemDetail creditLimit(CreditLimitExceededException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setTitle("Credit limit exceeded");
+        return problem;
     }
 
     @ExceptionHandler(Exception.class)
-    public ProblemDetail handleUnexpected(Exception ex) {
+    ProblemDetail unexpected(Exception ex) {
         log.error("Unexpected error", ex);
-        return ProblemDetail.forStatusAndDetail(
-            HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
+        return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
     }
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
-            MethodArgumentNotValidException ex, HttpHeaders headers,
-            HttpStatusCode status, WebRequest request) {
-        Map<String, String> errors = ex.getBindingResult()
-            .getFieldErrors()
-            .stream()
+            MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
             .collect(Collectors.toMap(
                 FieldError::getField,
-                error -> error.getDefaultMessage() != null
-                    ? error.getDefaultMessage()
-                    : "Invalid value",
+                error -> Objects.requireNonNullElse(error.getDefaultMessage(), "Invalid value"),
                 (first, second) -> first));
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, "Validation failed");
         problem.setProperty("errors", errors);
@@ -184,103 +134,41 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 }
 ```
+The detail of an unexpected error never carries `ex.getMessage()`: it can hold SQL, paths or
+data (`delivery-doctrine:security-audit`, A10).
 
-## Custom Validation
-
-```java
-@Target({ElementType.FIELD, ElementType.PARAMETER})
-@Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy = UniqueEmailValidator.class)
-public @interface UniqueEmail {
-    String message() default "Email already exists";
-    Class<?>[] groups() default {};
-    Class<? extends Payload>[] payload() default {};
-}
-
-@Component
-public class UniqueEmailValidator implements ConstraintValidator<UniqueEmail, String> {
-    private final UserRepository userRepository;
-
-    public UniqueEmailValidator(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-    
-    @Override
-    public boolean isValid(String email, ConstraintValidatorContext context) {
-        if (email == null) return true;
-        return !userRepository.existsByEmail(email);
-    }
-}
-```
-
-## RestClient for External APIs
+## Outbound calls with RestClient
+An outbound HTTP call is an out-adapter implementing a domain port (`PaymentGateway`), so the
+domain never sees HTTP types.
 
 ```java
-@Configuration
-public class RestClientConfig {
-    @Bean
-    public RestClient restClient(RestClient.Builder builder) {
-        return builder
-            .baseUrl("https://api.example.com")
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .build();
+class HttpPaymentGateway implements PaymentGateway {
+    private final RestClient client;
+
+    HttpPaymentGateway(RestClient.Builder builder, PaymentProperties properties) {
+        this.client = builder.baseUrl(properties.baseUrl()).build();
     }
-}
-
-@Service
-public class ExternalApiService {
-    private final RestClient restClient;
-
-    public ExternalApiService(RestClient restClient) {
-        this.restClient = restClient;
-    }
-
-    public ExternalDataResponse fetchData(String id) {
-        return restClient
-            .get()
-            .uri("/data/{id}", id)
-            .retrieve()
-            .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
-                throw new ResourceNotFoundException("External resource not found");
-            })
-            .onStatus(HttpStatusCode::is5xxServerError, (request, response) -> {
-                throw new ServiceUnavailableException("External service unavailable");
-            })
-            .body(ExternalDataResponse.class);
-    }
-}
-```
-
-Use `RestClient` for blocking calls in a Spring MVC app; use `WebClient` only in reactive or streaming code. In Spring Boot 4 the auto-configured `RestClient.Builder` comes from `spring-boot-starter-restclient` and `WebClient.Builder` from `spring-boot-starter-webclient`. Timeouts and retries belong to the request factory settings and to Resilience4j (see `cloud.md`), not to the call site.
-
-## CORS Configuration
-
-```java
-@Configuration
-public class WebConfig implements WebMvcConfigurer {
 
     @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**")
-            .allowedOrigins("http://localhost:3000", "https://example.com")
-            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-            .allowedHeaders("*")
-            .allowCredentials(true)
-            .maxAge(3600);
+    public PaymentReceipt charge(PaymentRequest payment) {
+        return client.post().uri("/charges").body(ChargeBody.from(payment)).retrieve()
+            .onStatus(status -> status.value() == 402, (request, response) -> {
+                throw new PaymentDeclinedException(payment.orderId());
+            })
+            .body(ChargeResult.class)
+            .toReceipt();
     }
 }
 ```
+- `RestClient` for blocking calls in a Spring MVC app; `WebClient` only in reactive or streaming
+  code. In Boot 4 the auto-configured `RestClient.Builder` comes from `spring-boot-starter-restclient`
+  and `WebClient.Builder` from `spring-boot-starter-webclient`.
+- Every call has timeouts: `spring.http.clients.connect-timeout` and `spring.http.clients.read-timeout`
+  for the auto-configured clients. Retries and circuit breaking sit on the adapter
+  (`operations.md`), never inside a transaction.
+- The base URL comes from configuration, so a test points it at an in-process stub
+  (`delivery-doctrine:acceptance-testing`).
 
-## Quick Reference
-
-| Annotation | Purpose |
-|------------|---------|
-| `@RestController` | Marks class as REST controller (combines @Controller + @ResponseBody) |
-| `@RequestMapping` | Maps HTTP requests to handler methods |
-| `@GetMapping/@PostMapping` | HTTP method-specific mappings |
-| `@PathVariable` | Extracts values from URI path |
-| `@RequestParam` | Extracts query parameters |
-| `@RequestBody` | Binds request body to method parameter |
-| `@Valid` | Triggers validation on request body |
-| `@RestControllerAdvice` | Global exception handling for REST controllers |
-| `@ResponseStatus` | Sets HTTP status code for method |
+## CORS
+With Spring Security on the classpath, configure CORS there (`security.md`). Without it, one
+`WebMvcConfigurer.addCorsMappings` with exact origins from configuration; never `*` with credentials.

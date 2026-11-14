@@ -2,446 +2,128 @@
 
 # Data Access - Spring Data JPA
 
-Spring Boot 4 ships Spring Data 2025.1 (Spring Data JPA 4) on Hibernate 7 and Jakarta Persistence 3.2. `@EntityScan` moved to `org.springframework.boot.persistence.autoconfigure.EntityScan`, `hibernate-jpamodelgen` is replaced by `hibernate-processor`, and `spring.dao.exceptiontranslation.enabled` is now `spring.persistence.exceptiontranslation.enabled`.
+Read when the slice touches persistence. The persistence adapter lives in
+`<feature>.persistence` and implements the domain's port; JPA entities are adapter types mapped
+to and from the aggregate (`delivery-doctrine:java-domain`). Examples carry ✅/❌ labels to
+teach; delivered code carries none.
 
-## JPA Entity Pattern
+Spring Boot 4 ships Spring Data 2025.1 (Spring Data JPA 4) on Hibernate 7 and Jakarta Persistence 3.2. `@EntityScan` moved to `org.springframework.boot.persistence.autoconfigure.EntityScan`, `hibernate-jpamodelgen` is replaced by `hibernate-processor`, and `spring.dao.exceptiontranslation.enabled` is now `spring.persistence.exceptiontranslation.enabled`. Set `spring.jpa.open-in-view=false`.
 
+## Entity, repository, adapter
 ```java
 @Entity
-@Table(name = "users", indexes = {
-    @Index(name = "idx_email", columnList = "email", unique = true),
-    @Index(name = "idx_username", columnList = "username")
-})
-@EntityListeners(AuditingEntityListener.class)
-public class User {
-
+@Table(name = "orders", indexes = @Index(name = "idx_orders_customer", columnList = "customer_id"))
+class OrderEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false, unique = true, length = 100)
-    private String email;
-
-    @Column(nullable = false, length = 100)
-    private String password;
-
-    @Column(nullable = false, unique = true, length = 50)
-    private String username;
-
-    @Column(nullable = false)
-    private Boolean active = true;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Address> addresses = new ArrayList<>();
-
-    @ManyToMany
-    @JoinTable(
-        name = "user_roles",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<Role> roles = new HashSet<>();
-
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
-
+    private UUID id;
+    @Column(name = "customer_id", nullable = false)
+    private UUID customerId;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private OrderStatus status;
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderLineEntity> lines = new ArrayList<>();
     @Version
-    private Long version;
+    private long version;
 
-    public User() {}
+    protected OrderEntity() {}
 
-    public User(Long id, String email, String password, String username, Boolean active,
-                List<Address> addresses, Set<Role> roles, LocalDateTime createdAt,
-                LocalDateTime updatedAt, Long version) {
-        this.id = id;
-        this.email = email;
-        this.password = password;
-        this.username = username;
-        this.active = active != null ? active : true;
-        this.addresses = addresses != null ? addresses : new ArrayList<>();
-        this.roles = roles != null ? roles : new HashSet<>();
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.version = version;
-    }
+    static OrderEntity from(Order order) { ... }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
-
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
-
-    public Boolean getActive() { return active; }
-    public void setActive(Boolean active) { this.active = active; }
-
-    public List<Address> getAddresses() { return addresses; }
-    public void setAddresses(List<Address> addresses) { this.addresses = addresses; }
-
-    public Set<Role> getRoles() { return roles; }
-    public void setRoles(Set<Role> roles) { this.roles = roles; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-
-    public Long getVersion() { return version; }
-    public void setVersion(Long version) { this.version = version; }
-
-    public void addAddress(Address address) {
-        addresses.add(address);
-        address.setUser(this);
-    }
-
-    public void removeAddress(Address address) {
-        addresses.remove(address);
-        address.setUser(null);
-    }
+    Order toDomain() { ... }
 }
-```
 
-## Spring Data JPA Repository
-
-```java
-@Repository
-public interface UserRepository extends JpaRepository<User, Long>,
-                                       JpaSpecificationExecutor<User> {
-
-    Optional<User> findByEmail(String email);
-
-    Optional<User> findByUsername(String username);
-
-    boolean existsByEmail(String email);
-
-    boolean existsByUsername(String username);
-
-    @Query("SELECT u FROM User u LEFT JOIN FETCH u.roles WHERE u.email = :email")
-    Optional<User> findByEmailWithRoles(@Param("email") String email);
-
-    @Query("SELECT u FROM User u WHERE u.active = true AND u.createdAt >= :since")
-    List<User> findActiveUsersSince(@Param("since") LocalDateTime since);
+interface OrderJpaRepository extends JpaRepository<OrderEntity, UUID> {
+    @EntityGraph(attributePaths = "lines")
+    Optional<OrderEntity> findWithLinesById(UUID id);
 
     @Modifying
-    @Query("UPDATE User u SET u.active = false WHERE u.lastLoginAt < :threshold")
-    int deactivateInactiveUsers(@Param("threshold") LocalDateTime threshold);
-
-    @Query("SELECT new com.example.dto.UserSummary(u.id, u.username, u.email) " +
-           "FROM User u WHERE u.active = true")
-    List<UserSummary> findAllActiveSummaries();
+    @Query("""
+        UPDATE OrderEntity o SET o.status = com.acme.orders.OrderStatus.RELEASED
+        WHERE o.id = :id AND o.status = com.acme.orders.OrderStatus.PLACED""")
+    int releaseIfPlaced(@Param("id") UUID id);
 }
-```
 
-## Repository with Specifications
+class JpaOrderStore implements OrderStore {
+    private final OrderJpaRepository repository;
 
-```java
-public class UserSpecifications {
-
-    public static Specification<User> hasEmail(String email) {
-        return (root, query, cb) ->
-            email == null ? null : cb.equal(root.get("email"), email);
+    JpaOrderStore(OrderJpaRepository repository) {
+        this.repository = repository;
     }
 
-    public static Specification<User> isActive() {
-        return (root, query, cb) -> cb.isTrue(root.get("active"));
-    }
-
-    public static Specification<User> createdAfter(LocalDateTime date) {
-        return (root, query, cb) ->
-            date == null ? null : cb.greaterThanOrEqualTo(root.get("createdAt"), date);
-    }
-
-    public static Specification<User> hasRole(String roleName) {
-        return (root, query, cb) -> {
-            Join<User, Role> roles = root.join("roles", JoinType.INNER);
-            return cb.equal(roles.get("name"), roleName);
-        };
-    }
-}
-```
-
-**Usage in service**
-
-```java
-@Service
-public class UserService {
-    private final UserRepository userRepository;
-
-    public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-    
-    public Page<User> searchUsers(UserSearchCriteria criteria, Pageable pageable) {
-        Specification<User> spec = Specification
-            .where(UserSpecifications.hasEmail(criteria.email()))
-            .and(UserSpecifications.isActive())
-            .and(UserSpecifications.createdAfter(criteria.createdAfter()));
-
-        return userRepository.findAll(spec, pageable);
-    }
-}
-```
-
-Since Spring Data JPA 4, `Specification.where(...)` rejects `null`: start from `Specification.unrestricted()` or combine with `Specification.allOf(...)` when the first criterion may be absent. A specification whose predicate is `null` (as in `hasEmail(null)`) is still allowed.
-
-## Transaction Management
-
-`createOrder` reserves stock and saves the order in a single transaction; an exception from any step (an `InsufficientStockException` from `reserveStock`) rolls all of it back. The payment is a remote call, so it runs after the commit, never inside the transaction: inside, it holds the connection for the whole call, and a commit that fails after the payment succeeded charges for an order that does not exist. Call it once `createOrder` has returned, or write an outbox row in this transaction and let a relay make the call. `logOrderEvent` uses a separate transaction (`REQUIRES_NEW`), so it commits even if the parent rolls back. `completeOrder` marks the order completed and publishes `OrderCompleted`; the `@TransactionalEventListener` sends the email only after the commit (`AFTER_COMMIT`, the default phase), so a rolled-back completion sends nothing and a failed send cannot undo the completion. The send's exception still reaches `completeOrder`'s caller after the commit; for a best-effort email the listener catches and logs it. The listener is not invoked when no transaction is running unless it sets `fallbackExecution = true`.
-
-```java
-@Service
-@Transactional(readOnly = true)
-public class OrderService {
-    private final OrderRepository orderRepository;
-    private final OrderEventRepository orderEventRepository;
-    private final InventoryService inventoryService;
-    private final ApplicationEventPublisher events;
-
-    public OrderService(OrderRepository orderRepository, OrderEventRepository orderEventRepository, InventoryService inventoryService, ApplicationEventPublisher events) {
-        this.orderRepository = orderRepository;
-        this.orderEventRepository = orderEventRepository;
-        this.inventoryService = inventoryService;
-        this.events = events;
-    }
-    
+    @Override
     @Transactional
-    public Order createOrder(OrderCreateRequest request) {
-        Order order = Order.builder()
-            .customerId(request.customerId())
-            .status(OrderStatus.PENDING)
-            .build();
-
-        request.items().forEach(item -> {
-            inventoryService.reserveStock(item.productId(), item.quantity());
-            order.addItem(item);
-        });
-
-        return orderRepository.save(order);
+    public void place(Order order) {
+        repository.save(OrderEntity.from(order));
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void logOrderEvent(Long orderId, String event) {
-        OrderEvent orderEvent = new OrderEvent(orderId, event);
-        orderEventRepository.save(orderEvent);
-    }
-
-    @Transactional
-    public void completeOrder(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-            .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-
-        order.complete();
-        events.publishEvent(new OrderCompleted(order.getId()));
-    }
-}
-
-public record OrderCompleted(Long orderId) {}
-
-@Component
-public class OrderCompletedNotifier {
-    private final NotificationService notificationService;
-
-    public OrderCompletedNotifier(NotificationService notificationService) {
-        this.notificationService = notificationService;
-    }
-
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void on(OrderCompleted event) {
-        notificationService.sendCompletionEmail(event.orderId());
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Order> byId(OrderId id) {
+        return repository.findWithLinesById(id.value()).map(OrderEntity::toDomain);
     }
 }
 ```
+- The entity has no public setters and no business rules; the aggregate keeps the invariants,
+  the entity only maps. A protected no-arg constructor satisfies JPA. If the house maps JPA
+  straight onto the aggregate, follow it and say so in the slice.
+- IDs: an application-assigned `UUID` lets the domain create an `OrderId` before the insert;
+  `@GeneratedValue(strategy = IDENTITY)` where the house uses database keys.
+- `@Version` gives optimistic locking: a stale update throws
+  `ObjectOptimisticLockingFailureException`, mapped to 409 at the edge.
+- `@Enumerated(EnumType.STRING)`, never the ordinal: reordering constants corrupts data.
+- A conditional `UPDATE … WHERE` (`releaseIfPlaced`) enforces a lifecycle rule against a
+  read-update-persist race; it returns the row count, and 0 means the rule refused. The domain
+  method mirrors it and one test pins the two together (`java-domain`).
+- Audit columns: `@CreatedDate`/`@LastModifiedDate` (and `@CreatedBy` with an `AuditorAware` bean)
+  under `@EntityListeners(AuditingEntityListener.class)` and `@EnableJpaAuditing` on a configuration class.
+- Read models: a record projection (`List<OrderSummary> findByCustomerId(UUID id)` with
+  `record OrderSummary(UUID id, String status)`), or a dynamic one (`<T> List<T> findByCustomerId(UUID id, Class<T> type)`),
+  so a list screen never loads whole aggregates.
+- Specifications for optional criteria: since Spring Data JPA 4, `Specification.where(...)` rejects `null`; start from `Specification.unrestricted()` or combine with `Specification.allOf(...)` when the first criterion may be absent. A specification whose predicate is `null` is still allowed.
 
-## Auditing Configuration
+## Transactions
+- **One port call is one transaction**, on the adapter method. A use case spanning several port
+  calls depends on the domain's `Transactions` port; its adapter is
+  `template.execute(status -> work.get())` on a `TransactionTemplate` (`java-domain`).
+- **Proxies apply only from outside.** `@Transactional` on a private method, or a call from the
+  same class, runs without the transaction.
+- **No remote call inside a transaction**: it holds the connection for the whole call, and a commit
+  that fails after the call succeeded leaves the remote side changed (a payment for an order that
+  does not exist). Call it after the commit, or write an outbox row in the transaction and let a
+  relay make the call.
+- **`REQUIRES_NEW`** for a record that must survive the caller's rollback (an audit entry of the
+  attempt); it takes a second connection, so never under open-in-view or in a loop.
+- **After-commit side effects** through `@TransactionalEventListener` (`AFTER_COMMIT`, the default
+  phase): a rolled-back change publishes nothing, and a failed send cannot undo the commit. The
+  listener's exception still reaches the caller after the commit; a best-effort notification
+  catches and logs it. The listener is not invoked when no transaction is running unless it sets
+  `fallbackExecution = true`.
 
-```java
-@Configuration
-@EnableJpaAuditing
-public class JpaAuditingConfig {
+## Queries
+- **N+1**: one query per row of a list. Fix with a fetch join (`JOIN FETCH`; Hibernate 6+ removes
+  the duplicate roots without `DISTINCT`), `@EntityGraph`, or `@BatchSize` on the association.
+- **Fetch join plus paging** of a collection makes Hibernate page in memory (it logs a warning):
+  page the root IDs first, then fetch those roots with their collections.
+- **Page or stream** anything that grows; a `findAll()` on a growing table is a finding.
+- **Native queries** for what JPQL cannot say, always with parameters (`:since`), never concatenation.
+- Turn `org.hibernate.SQL` to `DEBUG` while chasing a query, and back off before commit.
 
-    @Bean
-    public AuditorAware<String> auditorProvider() {
-        return () -> {
-            Authentication authentication = SecurityContextHolder
-                .getContext()
-                .getAuthentication();
-
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return Optional.of("system");
-            }
-
-            return Optional.of(authentication.getName());
-        };
-    }
-}
-
-@MappedSuperclass
-@EntityListeners(AuditingEntityListener.class)
-@Getter @Setter
-public abstract class AuditableEntity {
-
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @CreatedBy
-    @Column(nullable = false, updatable = false, length = 100)
-    private String createdBy;
-
-    @LastModifiedDate
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
-
-    @LastModifiedBy
-    @Column(nullable = false, length = 100)
-    private String updatedBy;
-}
-```
-
-## Projections
-
-**Interface-based projection**
-
-```java
-public interface UserSummary {
-    Long getId();
-    String getUsername();
-    String getEmail();
-
-    @Value("#{target.firstName + ' ' + target.lastName}")
-    String getFullName();
-}
-```
-
-**Class-based projection (DTO)**
-
-```java
-public record UserSummaryDto(
-    Long id,
-    String username,
-    String email
-) {}
-```
-
-**Usage**
-
-```java
-public interface UserRepository extends JpaRepository<User, Long> {
-    List<UserSummary> findAllBy();
-
-    <T> List<T> findAllBy(Class<T> type);
-}
-```
-
-**Service usage**
-
-```java
-List<UserSummary> summaries = userRepository.findAllBy();
-List<UserSummaryDto> dtos = userRepository.findAllBy(UserSummaryDto.class);
-```
-
-## Query Optimization
-
-`JOIN FETCH` solves the N+1 problem, `@BatchSize` enables batch fetching, `@EntityGraph` fetches associations dynamically, `Pageable` avoids loading all data, and a native query handles the complex case.
-
-```java
-@Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class UserQueryService {
-    private final UserRepository userRepository;
-    private final EntityManager entityManager;
-
-    @Query("SELECT DISTINCT u FROM User u " +
-           "LEFT JOIN FETCH u.addresses " +
-           "LEFT JOIN FETCH u.roles " +
-           "WHERE u.active = true")
-    List<User> findAllActiveWithAssociations();
-
-    @BatchSize(size = 25)
-    @OneToMany(mappedBy = "user")
-    private List<Order> orders;
-
-    @EntityGraph(attributePaths = {"addresses", "roles"})
-    List<User> findAllByActiveTrue();
-
-    public Page<User> findAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable);
-    }
-
-    @Query(value = """
-        SELECT u.* FROM users u
-        INNER JOIN orders o ON u.id = o.user_id
-        WHERE o.created_at >= :since
-        GROUP BY u.id
-        HAVING COUNT(o.id) >= :minOrders
-        """, nativeQuery = true)
-    List<User> findFrequentBuyers(@Param("since") LocalDateTime since,
-                                  @Param("minOrders") int minOrders);
-}
-```
-
-## Database Migrations (Flyway)
-
+## Migrations (Flyway)
 In Spring Boot 4, Flyway auto-configuration needs `spring-boot-starter-flyway` (plus the database module, e.g. `flyway-database-postgresql`); `flyway-core` alone no longer triggers it.
 
-**V1__create_users_table.sql**
 ```sql
-CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    password VARCHAR(100) NOT NULL,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    version BIGINT NOT NULL DEFAULT 0
+CREATE TABLE orders (
+    id          UUID PRIMARY KEY,
+    customer_id UUID        NOT NULL,
+    status      VARCHAR(20) NOT NULL,
+    version     BIGINT      NOT NULL DEFAULT 0,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_username ON users(username);
-CREATE INDEX idx_users_active ON users(active);
+CREATE INDEX idx_orders_customer ON orders (customer_id);
 ```
-
-**V2__create_addresses_table.sql**
-```sql
-CREATE TABLE addresses (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    street VARCHAR(200) NOT NULL,
-    city VARCHAR(100) NOT NULL,
-    country VARCHAR(2) NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_addresses_user_id ON addresses(user_id);
-```
-
-## Quick Reference
-
-| Annotation | Purpose |
-|------------|---------|
-| `@Entity` | Marks class as JPA entity |
-| `@Table` | Specifies table details and indexes |
-| `@Id` | Marks primary key field |
-| `@GeneratedValue` | Auto-generated primary key strategy |
-| `@Column` | Column constraints and mapping |
-| `@OneToMany/@ManyToOne` | One-to-many/many-to-one relationships |
-| `@ManyToMany` | Many-to-many relationships |
-| `@JoinColumn/@JoinTable` | Join column/table configuration |
-| `@Transactional` | Declares transaction boundaries |
-| `@Query` | Custom JPQL/native queries |
-| `@Modifying` | Marks query as UPDATE/DELETE |
-| `@EntityGraph` | Defines fetch graph for associations |
-| `@Version` | Optimistic locking version field |
+- `V<n>__<what>.sql`; a merged migration is never edited, only followed by a new one.
+- `spring.jpa.hibernate.ddl-auto=validate` (or `none`): the schema comes from migrations, never
+  from Hibernate.
+- A change that existing rows or the previous release cannot read ships expand then contract: add
+  the new column and write both, backfill, switch reads, drop the old one in a later release.
