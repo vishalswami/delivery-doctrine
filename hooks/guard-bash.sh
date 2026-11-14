@@ -138,11 +138,12 @@ def recursive_force_rm(command):
     return False
 
 
-reason = hygiene(cmd)
+joined = re.sub(r'\\\n', ' ', cmd)
+reason = hygiene(joined)
 if reason:
     rules.append((r'', reason))
 
-checked = unquoted(cmd)
+checked = unquoted(joined)
 if recursive_force_rm(checked):
     rules.insert(0, (r'', "recursive force delete (rm -rf) is blocked; delete specific paths deliberately"))
 for pattern, reason in rules:
