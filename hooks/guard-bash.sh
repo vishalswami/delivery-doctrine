@@ -138,7 +138,7 @@ def recursive_force_rm(command):
     return False
 
 
-joined = re.sub(r'\\\n', ' ', cmd)
+joined = re.sub(r'\\\n', '', cmd)
 reason = hygiene(joined)
 if reason:
     rules.append((r'', reason))
