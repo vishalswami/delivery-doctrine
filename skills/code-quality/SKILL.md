@@ -10,7 +10,7 @@ description: Comprehensive code review for Java - clean code principles, API con
 Systematic code review combining clean code principles, API design, and Java best practices.
 
 > Defers to `delivery-doctrine:readable-java-style` on method decomposition and comments: no comments
-> (CLAUDE.md hard rule), and don't reflexively extract — a long-but-clear method is not
+> (the doctrine's hard rule), and don't reflexively extract — a long-but-clear method is not
 > a smell. This skill owns null safety, API contracts, exceptions, and performance.
 
 ## When to Use
@@ -127,15 +127,9 @@ public ResponseEntity<Void> activate(@PathVariable Long id) { }
 
 ### API Versioning
 
-```java
-// ✅ URL path versioning (recommended)
-@RestController
-@RequestMapping("/api/v1/users")
-public class UserControllerV1 { }
-
-// ❌ No versioning
-@RequestMapping("/users")  // Breaking changes affect all clients
-```
+Follow the versioning scheme the house or the requirements name; add none by default. A
+`/v1` segment nobody asked for is invented structure: how to ship a breaking change is the
+API owners' decision, not a default path prefix.
 
 ### Response Status Codes
 
@@ -152,16 +146,16 @@ public class UserControllerV1 { }
 ### DTO vs Entity Exposure
 
 ```java
-// ❌ Exposing JPA entity
+// ❌ Exposing the JPA entity: leaks internals, risks N+1
 @GetMapping("/{id}")
 public User getUser(@PathVariable Long id) {
-    return userRepository.findById(id).get();  // Exposes internals, N+1 risk
+    return userRepository.findById(id).get();
 }
 
-// ✅ Use DTO
+// ✅ Return a DTO
 @GetMapping("/{id}")
 public UserResponse getUser(@PathVariable Long id) {
-    return userService.findById(id);  // Returns DTO
+    return userService.findById(id);
 }
 ```
 
@@ -196,61 +190,60 @@ return user.getName().toUpperCase();
 
 **Check for:**
 ```java
-// ❌ Swallowing exceptions
+// ❌ Swallowing exceptions: a silent failure
 try {
     process();
-} catch (Exception e) { }  // Silent failure
+} catch (Exception e) { }
 
-// ❌ Losing stack trace
+// ❌ Losing the stack trace and its context
 catch (IOException e) {
-    throw new RuntimeException(e.getMessage());  // Lost context
+    throw new RuntimeException(e.getMessage());
 }
 
-// ✅ Proper handling
+// ✅ Rethrow with the cause; the handler that catches it logs it, once
 catch (IOException e) {
-    log.error("Failed to process file: {}", filename, e);
-    throw new ProcessingException("File processing failed", e);
+    throw new ProcessingException("File processing failed: " + filename, e);
 }
 ```
 
 **Flags:**
 - Empty catch blocks
 - Catching `Exception` or `Throwable` (too broad)
-- Not logging exceptions
+- Logging and rethrowing: the same failure logged twice; log once, where it is handled
 - Creating new exception without original cause
 
 ### Resource Management
 
 **Check for:**
 ```java
-// ❌ Resource leak
+// ❌ Resource leak: close() never runs if read() throws
 FileInputStream fis = new FileInputStream(file);
 String content = read(fis);
-fis.close();  // Won't execute if read() throws
+fis.close();
 
-// ✅ Try-with-resources
+// ✅ Try-with-resources closes it on every path
 try (FileInputStream fis = new FileInputStream(file)) {
     return read(fis);
-}  // Auto-closed
+}
 ```
 
 ### Transaction Boundaries
 
 **Check for:**
 ```java
-// ❌ Missing transaction
+// ❌ Missing transaction: two saves, two transactions
 public void createUser(UserRequest request) {
     User user = new User();
     userRepository.save(user);
-    roleRepository.save(new Role(user));  // Two separate transactions
+    roleRepository.save(new Role(user));
 }
 
-// ✅ Proper transaction
+// ✅ One atomic transaction
 @Transactional
 public void createUser(UserRequest request) {
     User user = new User();
     userRepository.save(user);
-    roleRepository.save(new Role(user));  // Single atomic transaction
+    roleRepository.save(new Role(user));
 }
 ```
 
@@ -276,18 +269,18 @@ public void doStuff(Long id) { }
 
 **Check for:**
 ```java
-// ❌ N+1 query problem
+// ❌ N+1 query problem: one query per user
 List<User> users = userRepository.findAll();
 for (User user : users) {
-    List<Order> orders = orderRepository.findByUserId(user.getId());  // N queries
+    List<Order> orders = orderRepository.findByUserId(user.getId());
 }
 
 // ✅ Join fetch
 @Query("SELECT u FROM User u LEFT JOIN FETCH u.orders")
 List<User> findAllWithOrders();
 
-// ❌ Loading all data
-List<User> allUsers = userRepository.findAll();  // Could be millions
+// ❌ Loading all data, possibly millions of rows
+List<User> allUsers = userRepository.findAll();
 
 // ✅ Pagination
 Page<User> users = userRepository.findAll(PageRequest.of(0, 20));
@@ -318,7 +311,7 @@ Page<User> users = userRepository.findAll(PageRequest.of(0, 20));
 - ✅ Constructor injection used throughout
 - ✅ DTOs properly separate from entities
 - ✅ Comprehensive validation on all endpoints
-- ✅ Good test coverage (87%)
+- ✅ Each behavior pinned by a given_when_then test
 ```
 
 ---
@@ -328,9 +321,9 @@ Page<User> users = userRepository.findAll(PageRequest.of(0, 20));
 | Category | Red Flags |
 |----------|-----------|
 | **Null Safety** | Chained calls, Optional.get(), returning null |
-| **Exceptions** | Empty catch, broad catch, lost stack trace |
+| **Exceptions** | Empty catch, broad catch, lost stack trace, log-and-rethrow |
 | **Resources** | Manual close(), missing try-with-resources |
-| **API Design** | Wrong HTTP verb, no versioning, entity exposure |
+| **API Design** | Wrong HTTP verb, entity exposure |
 | **Transactions** | Multi-step writes without @Transactional |
 | **Performance** | N+1 queries, loading all data, missing indexes |
 | **Clean Code** | Code duplication, magic numbers, unclear names |

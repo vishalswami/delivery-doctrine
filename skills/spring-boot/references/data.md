@@ -197,20 +197,21 @@ Since Spring Data JPA 4, `Specification.where(...)` rejects `null`: start from `
 
 ## Transaction Management
 
-`createOrder` runs all its operations in a single transaction and rethrows `PaymentException` so the transaction rolls back. `logOrderEvent` uses a separate transaction (`REQUIRES_NEW`), so it commits even if the parent rolls back. `completeOrder` does not roll back if the notification fails (`noRollbackFor`).
+`createOrder` reserves stock and saves the order in a single transaction; an exception from any step (an `InsufficientStockException` from `reserveStock`) rolls all of it back. The payment is a remote call, so it runs after the commit, never inside the transaction: inside, it holds the connection for the whole call, and a commit that fails after the payment succeeded charges for an order that does not exist. Call it once `createOrder` has returned, or write an outbox row in this transaction and let a relay make the call. `logOrderEvent` uses a separate transaction (`REQUIRES_NEW`), so it commits even if the parent rolls back. `completeOrder` does not roll back if the notification fails (`noRollbackFor`).
 
 ```java
 @Service
+@Slf4j
 @Transactional(readOnly = true)
 public class OrderService {
     private final OrderRepository orderRepository;
-    private final PaymentService paymentService;
+    private final OrderEventRepository orderEventRepository;
     private final InventoryService inventoryService;
     private final NotificationService notificationService;
 
-    public OrderService(OrderRepository orderRepository, PaymentService paymentService, InventoryService inventoryService, NotificationService notificationService) {
+    public OrderService(OrderRepository orderRepository, OrderEventRepository orderEventRepository, InventoryService inventoryService, NotificationService notificationService) {
         this.orderRepository = orderRepository;
-        this.paymentService = paymentService;
+        this.orderEventRepository = orderEventRepository;
         this.inventoryService = inventoryService;
         this.notificationService = notificationService;
     }
@@ -226,16 +227,6 @@ public class OrderService {
             inventoryService.reserveStock(item.productId(), item.quantity());
             order.addItem(item);
         });
-
-        order = orderRepository.save(order);
-
-        try {
-            paymentService.processPayment(order);
-            order.setStatus(OrderStatus.PAID);
-        } catch (PaymentException e) {
-            order.setStatus(OrderStatus.PAYMENT_FAILED);
-            throw e;
-        }
 
         return orderRepository.save(order);
     }

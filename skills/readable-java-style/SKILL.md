@@ -10,7 +10,7 @@ Two rules that override generic "clean code" advice in this codebase.
 ## Rule 1: No Comments
 
 Code explains itself through naming. Comments are banned — zero, in production and
-test code alike (CLAUDE.md's hard rule). A comment is a signal that a name or the
+test code alike (the doctrine's hard rule). A comment is a signal that a name or the
 structure failed; fix that, don't annotate it.
 
 - When a comment would explain *what*, rename until it is unnecessary, then delete it.

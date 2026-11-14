@@ -65,16 +65,15 @@ public class CreateUserRequest {
     private Integer age;
 }
 
-// Controller/Resource - trigger validation
+// ✅ GOOD: @Valid on the controller or resource parameter, so the body arrives validated
 public Response createUser(@Valid CreateUserRequest request) {
-    // request is already validated
+    return userService.create(request);
 }
 ```
 
 ### Custom Validators
 
 ```java
-// Custom annotation
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = SafeHtmlValidator.class)
@@ -84,7 +83,6 @@ public @interface SafeHtml {
     Class<? extends Payload>[] payload() default {};
 }
 
-// Validator implementation
 public class SafeHtmlValidator implements ConstraintValidator<SafeHtml, String> {
 
     private static final Pattern DANGEROUS_PATTERN = Pattern.compile(
@@ -130,15 +128,15 @@ Optional<User> findByEmail(@Param("email") String email);
 CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 CriteriaQuery<User> query = cb.createQuery(User.class);
 Root<User> user = query.from(User.class);
-query.where(cb.equal(user.get("email"), email));  // Safe
+query.where(cb.equal(user.get("email"), email));
 
 // ✅ GOOD: Named parameters
 TypedQuery<User> query = entityManager.createQuery(
     "SELECT u FROM User u WHERE u.status = :status", User.class);
-query.setParameter("status", status);  // Safe
+query.setParameter("status", status);
 
-// ❌ BAD: String concatenation
-String jpql = "SELECT u FROM User u WHERE u.email = '" + email + "'";  // VULNERABLE!
+// ❌ BAD: String concatenation, injectable
+String jpql = "SELECT u FROM User u WHERE u.email = '" + email + "'";
 ```
 
 ### Native Queries
@@ -148,8 +146,8 @@ String jpql = "SELECT u FROM User u WHERE u.email = '" + email + "'";  // VULNER
 @Query(value = "SELECT * FROM users WHERE email = ?1", nativeQuery = true)
 User findByEmailNative(String email);
 
-// ❌ BAD: Concatenated native query
-String sql = "SELECT * FROM users WHERE email = '" + email + "'";  // VULNERABLE!
+// ❌ BAD: Concatenated native query, injectable
+String sql = "SELECT * FROM users WHERE email = '" + email + "'";
 ```
 
 ### JDBC (Plain Java)
@@ -163,8 +161,8 @@ try (PreparedStatement stmt = connection.prepareStatement(sql)) {
     ResultSet rs = stmt.executeQuery();
 }
 
-// ❌ BAD: Statement with concatenation
-String sql = "SELECT * FROM users WHERE email = '" + email + "'";  // VULNERABLE!
+// ❌ BAD: Statement with concatenation, injectable
+String sql = "SELECT * FROM users WHERE email = '" + email + "'";
 Statement stmt = connection.createStatement();
 stmt.executeQuery(sql);
 ```
@@ -175,15 +173,15 @@ stmt.executeQuery(sql);
 
 ### Output Encoding
 
+Use the templating engine's auto-escaping. Thymeleaf's `th:text` escapes by default;
+`th:utext` renders raw HTML, so it takes trusted content only.
+
+```html
+<p th:text="${userInput}">...</p>
+<p th:utext="${trustedHtml}">...</p>
+```
+
 ```java
-// ✅ GOOD: Use templating engine's auto-escaping
-
-// Thymeleaf - auto-escapes by default
-<p th:text="${userInput}">...</p>  // Safe
-
-// To display HTML (dangerous, use carefully):
-<p th:utext="${trustedHtml}">...</p>  // Only for trusted content!
-
 // ✅ GOOD: Manual encoding when needed
 import org.owasp.encoder.Encode;
 
@@ -203,10 +201,9 @@ String safeUrl = Encode.forUriComponent(userInput);
 
 ### Content Security Policy
 
-```java
-// Add CSP header to prevent inline scripts
+A CSP header blocks inline scripts. In Spring Boot:
 
-// Spring Boot
+```java
 @Configuration
 public class SecurityConfig {
 
@@ -220,8 +217,11 @@ public class SecurityConfig {
         return http.build();
     }
 }
+```
 
-// Servlet Filter (works everywhere)
+As a Servlet filter, which works everywhere:
+
+```java
 @WebFilter("/*")
 public class SecurityHeadersFilter implements Filter {
     @Override
@@ -242,23 +242,25 @@ public class SecurityHeadersFilter implements Filter {
 
 ### Spring Security
 
+CSRF protection is on by default. A stateless REST API authenticated by JWT can disable it:
+
 ```java
-// CSRF enabled by default for browser clients
-@Configuration
-public class SecurityConfig {
+@Bean
+public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
+    http.csrf(csrf -> csrf.disable());
+    return http.build();
+}
+```
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            // For REST APIs with JWT (stateless) - can disable CSRF
-            .csrf(csrf -> csrf.disable())
+A browser app with sessions keeps it on:
 
-            // For browser apps with sessions - keep CSRF enabled
-            .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-            );
-        return http.build();
-    }
+```java
+@Bean
+public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
+    http.csrf(csrf -> csrf
+        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+    );
+    return http.build();
 }
 ```
 
@@ -277,21 +279,19 @@ quarkus.http.csrf.cookie-name=XSRF-TOKEN
 ### Password Storage
 
 ```java
-// ✅ GOOD: Use BCrypt or Argon2
+// ✅ GOOD: BCrypt (widely supported, strength 12) or Argon2 (recommended for new projects)
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
-// BCrypt (widely supported)
-PasswordEncoder encoder = new BCryptPasswordEncoder(12);  // strength 12
-String hash = encoder.encode(rawPassword);
-boolean matches = encoder.matches(rawPassword, hash);
+PasswordEncoder bcrypt = new BCryptPasswordEncoder(12);
+String hash = bcrypt.encode(rawPassword);
+boolean matches = bcrypt.matches(rawPassword, hash);
 
-// Argon2 (recommended for new projects)
-PasswordEncoder encoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
-String hash = encoder.encode(rawPassword);
+PasswordEncoder argon2 = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+String argonHash = argon2.encode(rawPassword);
 
-// ❌ BAD: MD5, SHA1, SHA256 without salt
-String hash = DigestUtils.md5Hex(password);  // NEVER for passwords!
+// ❌ BAD: MD5, SHA1, SHA256 without salt: never for passwords
+String hash = DigestUtils.md5Hex(password);
 ```
 
 ### Authorization Checks
@@ -305,7 +305,6 @@ public class DocumentService {
         Document doc = documentRepository.findById(documentId)
             .orElseThrow(() -> new NotFoundException("Document not found"));
 
-        // Authorization check
         if (!doc.getOwnerId().equals(currentUser.getId()) &&
             !currentUser.hasRole("ADMIN")) {
             throw new AccessDeniedException("Not authorized to access this document");
@@ -315,10 +314,10 @@ public class DocumentService {
     }
 }
 
-// ❌ BAD: Only check at controller level, trust user input
+// ❌ BAD: No authorization check at all; the controller trusts the id it was given
 @GetMapping("/documents/{id}")
 public Document getDocument(@PathVariable Long id) {
-    return documentRepository.findById(id).orElseThrow();  // No auth check!
+    return documentRepository.findById(id).orElseThrow();
 }
 ```
 
@@ -353,9 +352,7 @@ String apiKey = System.getenv("API_KEY");
 @Value("${api.key}")
 private String apiKey;
 
-// ✅ GOOD: Secrets manager
-@Autowired
-private SecretsManager secretsManager;
+// ✅ GOOD: Secrets manager, constructor-injected
 String apiKey = secretsManager.getSecret("api-key");
 ```
 
@@ -395,37 +392,33 @@ application-local.yml
 ### Avoid Java Serialization
 
 ```java
-// ❌ DANGEROUS: Java ObjectInputStream
+// ❌ DANGEROUS: Java ObjectInputStream on untrusted input, a remote code execution risk
 ObjectInputStream ois = new ObjectInputStream(untrustedInput);
-Object obj = ois.readObject();  // Remote Code Execution risk!
+Object obj = ois.readObject();
 
-// ✅ GOOD: Use JSON with Jackson
+// ✅ GOOD: JSON with Jackson into a concrete type
 ObjectMapper mapper = new ObjectMapper();
-// Disable dangerous features
 mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+User user = mapper.readValue(json, User.class);
+
+// ❌ DANGEROUS: default typing with a permissive validator lets the payload pick the class
 mapper.activateDefaultTyping(
     LaissezFaireSubTypeValidator.instance,
     ObjectMapper.DefaultTyping.NON_FINAL
-);  // Be careful with polymorphic types!
-
-User user = mapper.readValue(json, User.class);
+);
 ```
 
 ### Jackson Security
 
 ```java
-// ✅ Configure Jackson safely
+// ✅ Configure Jackson safely: ignore unknown properties, and no class type in JSON (no gadget attacks)
 @Configuration
 public class JacksonConfig {
 
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
-
-        // Prevent unknown properties exploitation
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-        // Don't allow class type in JSON (prevents gadget attacks)
         mapper.deactivateDefaultTyping();
 
         return mapper;
@@ -513,9 +506,9 @@ log.warn("Failed login attempt", kv("username", username), kv("ip", clientIp), k
 log.warn("Access denied", kv("userId", userId), kv("resource", resourceId), kv("action", action));
 log.error("Authentication failure", kv("reason", reason), kv("ip", clientIp));
 
-// ❌ NEVER log sensitive data
-log.info("Login: user={}, password={}", username, password);  // NEVER!
-log.debug("Request body: {}", requestWithCreditCard);  // NEVER!
+// ❌ NEVER log sensitive data: passwords, card numbers, whole request bodies
+log.info("Login: user={}, password={}", username, password);
+log.debug("Request body: {}", requestWithCreditCard);
 ```
 
 ---

@@ -39,8 +39,7 @@ try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
     }
 }
 
-// ❌ Not beneficial for CPU-bound tasks
-// Use platform threads / ForkJoinPool instead
+// ❌ Not beneficial for CPU-bound tasks: use platform threads or a ForkJoinPool
 ```
 
 **Rule of thumb**: If your app never has 10,000+ concurrent tasks, virtual threads may not provide significant benefit.
@@ -50,14 +49,13 @@ try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 In Java 21-23, virtual threads became "pinned" when entering `synchronized` blocks with blocking operations. **Java 25 fixes this** (JEP 491).
 
 ```java
-// In Java 21-23: ⚠️ Could cause pinning
+// ❌ Java 21-23: blocking inside synchronized pins the virtual thread to its carrier
 synchronized (lock) {
-    blockingIoCall();  // Virtual thread pinned to carrier
+    blockingIoCall();
 }
-
-// In Java 25: ✅ No longer an issue
-// But consider ReentrantLock for explicit control anyway
 ```
+
+Java 25 no longer pins here; `ReentrantLock` still gives explicit control.
 
 ### ScopedValue Over ThreadLocal
 
@@ -68,11 +66,10 @@ private static final ThreadLocal<User> currentUser = new ThreadLocal<>();
 // ✅ ScopedValue (Java 21+ preview, improved in 25)
 private static final ScopedValue<User> CURRENT_USER = ScopedValue.newInstance();
 
-ScopedValue.where(CURRENT_USER, user).run(() -> {
-    // CURRENT_USER.get() available here and in child virtual threads
-    processRequest();
-});
+ScopedValue.where(CURRENT_USER, user).run(() -> processRequest());
 ```
+
+`CURRENT_USER.get()` is available inside `processRequest()` and in child virtual threads.
 
 ### Structured Concurrency (Java 25 Preview)
 
@@ -82,13 +79,15 @@ try (StructuredTaskScope.ShutdownOnFailure scope = new StructuredTaskScope.Shutd
     Subtask<User> userTask = scope.fork(() -> fetchUser(id));
     Subtask<Orders> ordersTask = scope.fork(() -> fetchOrders(id));
 
-    scope.join();            // Wait for all
-    scope.throwIfFailed();   // Propagate exceptions
+    scope.join();
+    scope.throwIfFailed();
 
     return new Profile(userTask.get(), ordersTask.get());
 }
-// All subtasks automatically cancelled if scope exits
 ```
+
+`join()` waits for every subtask, `throwIfFailed()` propagates the first failure, and leaving
+the scope cancels whatever is still running.
 
 ---
 
@@ -116,23 +115,26 @@ public class AsyncConfig { }
 @Service
 public class OrderService {
 
-    // ❌ Bypasses proxy - runs synchronously!
+    // ❌ A direct call bypasses the proxy: it runs synchronously
     public void processOrder(Order order) {
-        sendConfirmation(order);  // Direct call, not async
+        sendConfirmation(order);
     }
 
     @Async
     public void sendConfirmation(Order order) { }
 }
 
-// ✅ Inject self or use separate service
+// ✅ Call through another bean (a separate service, or an injected self): the proxy applies @Async
 @Service
 public class OrderService {
-    @Autowired
-    private EmailService emailService;  // Separate bean
+    private final EmailService emailService;
+
+    public OrderService(EmailService emailService) {
+        this.emailService = emailService;
+    }
 
     public void processOrder(Order order) {
-        emailService.sendConfirmation(order);  // Proxy call, async works
+        emailService.sendConfirmation(order);
     }
 }
 ```
@@ -155,8 +157,7 @@ public void processInBackground() { }
 ### 4. Default Executor Creates Thread Per Task
 
 ```java
-// ❌ Default SimpleAsyncTaskExecutor - creates new thread each time!
-// Can cause OutOfMemoryError under load
+// ❌ Default SimpleAsyncTaskExecutor: a new thread per task, OutOfMemoryError under load
 
 // ✅ Configure proper thread pool
 @Configuration
@@ -180,10 +181,9 @@ public class AsyncConfig {
 ### 5. SecurityContext Not Propagating
 
 ```java
-// ❌ SecurityContextHolder is ThreadLocal-bound
+// ❌ SecurityContextHolder is ThreadLocal-bound: its context is empty on the async thread
 @Async
 public void auditAction() {
-    // SecurityContextHolder.getContext() is NULL here!
     String user = SecurityContextHolder.getContext().getAuthentication().getName();
 }
 
@@ -191,7 +191,7 @@ public void auditAction() {
 @Bean
 public Executor taskExecutor() {
     ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-    // ... configure ...
+    executor.initialize();
     return new DelegatingSecurityContextAsyncTaskExecutor(executor);
 }
 ```
@@ -219,9 +219,8 @@ pool deadlock shows up immediately instead of costing a full timeout.
 ### Error Handling
 
 ```java
-// ❌ Exception silently swallowed
+// ❌ Exception silently swallowed: if riskyOperation throws, nobody knows
 CompletableFuture.supplyAsync(() -> riskyOperation());
-// If riskyOperation throws, nobody knows
 
 // ✅ Always handle exceptions
 CompletableFuture.supplyAsync(() -> riskyOperation())
@@ -244,9 +243,9 @@ CompletableFuture.supplyAsync(() -> riskyOperation())
 ### Timeout Handling (Java 9+)
 
 ```java
-// ✅ Fail after timeout
+// ✅ Fail after timeout with a TimeoutException
 CompletableFuture.supplyAsync(() -> slowOperation())
-    .orTimeout(5, TimeUnit.SECONDS);  // Throws TimeoutException
+    .orTimeout(5, TimeUnit.SECONDS);
 
 // ✅ Return default after timeout
 CompletableFuture.supplyAsync(() -> slowOperation())
@@ -290,17 +289,17 @@ CompletableFuture.supplyAsync(() -> blockingIoCall(), virtualExecutor);
 ### Race Conditions: Check-Then-Act
 
 ```java
-// ❌ Race condition
+// ❌ Race condition: another thread may add the key between the check and the put
 if (!map.containsKey(key)) {
-    map.put(key, computeValue());  // Another thread may have added it
+    map.put(key, computeValue());
 }
 
 // ✅ Atomic operation
 map.computeIfAbsent(key, k -> computeValue());
 
-// ❌ Race condition with counter
+// ❌ Race condition with counter: read-check-write is not atomic
 if (count < MAX) {
-    count++;  // Read-check-write is not atomic
+    count++;
 }
 
 // ✅ Atomic counter
@@ -311,15 +310,15 @@ count.updateAndGet(c -> c < MAX ? c + 1 : c);
 ### Visibility: Missing volatile
 
 ```java
-// ❌ Other threads may never see the update
+// ❌ Other threads may never see the update, so run() may loop forever
 private boolean running = true;
 
 public void stop() {
-    running = false;  // May not be visible to other threads
+    running = false;
 }
 
 public void run() {
-    while (running) { }  // May loop forever
+    while (running) { }
 }
 
 // ✅ Volatile ensures visibility
@@ -329,11 +328,11 @@ private volatile boolean running = true;
 ### Non-Atomic long/double
 
 ```java
-// ❌ 64-bit read/write is non-atomic on 32-bit JVMs
+// ❌ 64-bit read/write is non-atomic on 32-bit JVMs, and counter++ is never atomic
 private long counter;
 
 public void increment() {
-    counter++;  // Not atomic!
+    counter++;
 }
 
 // ✅ Use AtomicLong or synchronization
@@ -346,14 +345,14 @@ private volatile long counter;
 ### Double-Checked Locking
 
 ```java
-// ❌ Broken without volatile
+// ❌ Broken without volatile: another thread may see a partially constructed instance
 private static Singleton instance;
 
 public static Singleton getInstance() {
     if (instance == null) {
         synchronized (Singleton.class) {
             if (instance == null) {
-                instance = new Singleton();  // May be seen partially constructed
+                instance = new Singleton();
             }
         }
     }
@@ -376,14 +375,12 @@ public static Singleton getInstance() {
 ### Deadlocks: Lock Ordering
 
 ```java
-// ❌ Potential deadlock
-// Thread 1: lock(A) -> lock(B)
-// Thread 2: lock(B) -> lock(A)
-
+// ❌ Potential deadlock: transfer(a, b) locks A then B while transfer(b, a) locks B then A
 public void transfer(Account from, Account to, int amount) {
     synchronized (from) {
         synchronized (to) {
-            // Transfer logic
+            from.withdraw(amount);
+            to.deposit(amount);
         }
     }
 }
@@ -395,7 +392,8 @@ public void transfer(Account from, Account to, int amount) {
 
     synchronized (first) {
         synchronized (second) {
-            // Transfer logic
+            from.withdraw(amount);
+            to.deposit(amount);
         }
     }
 }
@@ -426,9 +424,9 @@ if (!map.containsKey(key)) {
 map.putIfAbsent(key, value);
 map.computeIfAbsent(key, k -> createValue());
 
-// ❌ Nested compute can deadlock
+// ❌ Nested compute on the same map can deadlock
 map.compute(key1, (k, v) -> {
-    return map.compute(key2, ...);  // Deadlock risk!
+    return map.compute(key2, ...);
 });
 ```
 

@@ -21,7 +21,8 @@ Enterprise Spring Boot 4.x development with focus on clean architecture and prod
 1. **Analyze** - Understand requirements, identify service boundaries, APIs, data models
 2. **Design** - Plan architecture, confirm design before coding
 3. **Implement** - Build with constructor injection and layered architecture
-4. **Secure** - Add Spring Security, OAuth2, method security; verify tests pass
+4. **Secure** - Apply the security the requirements or the house name (Spring Security,
+   OAuth2, method security); add none they don't; verify tests pass
 5. **Test** - Write unit, integration tests; run only the tests you wrote
    (`./mvnw test -Dtest='ProductControllerTest#givenValidRequest*'`; Gradle `--tests`),
    per `delivery-doctrine:execution-hygiene` — the full suite is CI's
@@ -81,7 +82,7 @@ public class ProductService {
 ### REST Controller
 ```java
 @RestController
-@RequestMapping("/api/v1/products")
+@RequestMapping("/api/products")
 @Validated
 public class ProductController {
     private final ProductService service;
@@ -150,7 +151,7 @@ class ProductControllerTest {
         product.setName("Widget");
         when(service.create(any())).thenReturn(product);
 
-        mockMvc.perform(post("/api/v1/products")
+        mockMvc.perform(post("/api/products")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Widget\",\"price\":10.0}"))
             .andExpect(status().isCreated())
@@ -257,7 +258,7 @@ src/main/java/com/example/service/
 
 ```java
 @RestController
-@RequestMapping("/api/v1/orders")
+@RequestMapping("/api/orders")
 public class OrderController {
     private final OrderService orderService;
 

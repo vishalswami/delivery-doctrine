@@ -18,50 +18,41 @@ class UserServiceTest {
     private UserService userService;
 
     @Test
-    @DisplayName("Should create user successfully")
-    void shouldCreateUser() {
+    void givenNewEmail_whenCreate_thenUserWithThatEmail() {
         UserCreateRequest request = new UserCreateRequest(
             "test@example.com",
             "Password123",
             "testuser",
             25
         );
-
         User user = new User();
         user.setId(1L);
         user.setEmail(request.email());
         user.setUsername(request.username());
-
         when(userRepository.existsByEmail(request.email())).thenReturn(false);
         when(passwordEncoder.encode(request.password())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(user);
 
         UserResponse response = userService.create(request);
 
-        assertThat(response).isNotNull();
-        assertThat(response.email()).isEqualTo(request.email());
-
-        verify(userRepository).existsByEmail(request.email());
-        verify(passwordEncoder).encode(request.password());
-        verify(userRepository).save(any(User.class));
+        assertThat(response.email()).isEqualTo("test@example.com");
     }
 
     @Test
-    @DisplayName("Should throw exception when email already exists")
-    void shouldThrowExceptionWhenEmailExists() {
+    void givenRegisteredEmail_whenCreate_thenRejectedAndNothingSaved() {
         UserCreateRequest request = new UserCreateRequest(
             "test@example.com",
             "Password123",
             "testuser",
             25
         );
-
         when(userRepository.existsByEmail(request.email())).thenReturn(true);
 
-        assertThatThrownBy(() -> userService.create(request))
+        Throwable thrown = catchThrowable(() -> userService.create(request));
+
+        assertThat(thrown)
             .isInstanceOf(DuplicateResourceException.class)
             .hasMessageContaining("Email already registered");
-
         verify(userRepository, never()).save(any(User.class));
     }
 }
@@ -89,8 +80,7 @@ class UserIntegrationTest {
 
     @Test
     @Order(1)
-    @DisplayName("Should create user via API")
-    void shouldCreateUserViaApi() {
+    void givenValidRequest_whenPostUsers_thenCreatedWithLocation() {
         UserCreateRequest request = new UserCreateRequest(
             "test@example.com",
             "Password123",
@@ -99,7 +89,7 @@ class UserIntegrationTest {
         );
 
         RestTestClient.ResponseSpec response = restTestClient.post()
-            .uri("/api/v1/users")
+            .uri("/api/users")
             .contentType(MediaType.APPLICATION_JSON)
             .body(request)
             .exchange();
@@ -112,8 +102,7 @@ class UserIntegrationTest {
 
     @Test
     @Order(2)
-    @DisplayName("Should return validation error for invalid request")
-    void shouldReturnValidationError() {
+    void givenInvalidRequest_whenPostUsers_thenBadRequestWithErrors() {
         UserCreateRequest request = new UserCreateRequest(
             "invalid-email",
             "short",
@@ -122,7 +111,7 @@ class UserIntegrationTest {
         );
 
         RestTestClient.ResponseSpec response = restTestClient.post()
-            .uri("/api/v1/users")
+            .uri("/api/users")
             .contentType(MediaType.APPLICATION_JSON)
             .body(request)
             .exchange();
@@ -154,16 +143,14 @@ class UserControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    @DisplayName("Should get all users")
-    void shouldGetAllUsers() throws Exception {
+    void givenTwoUsers_whenAdminGetsUsers_thenPageOfTwo() throws Exception {
         Page<UserResponse> users = new PageImpl<>(List.of(
             new UserResponse(1L, "user1@example.com", "user1", 25, true, null, null),
             new UserResponse(2L, "user2@example.com", "user2", 30, true, null, null)
         ));
-
         when(userService.findAll(any(Pageable.class))).thenReturn(users);
 
-        mockMvc.perform(get("/api/v1/users")
+        mockMvc.perform(get("/api/users")
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content").isArray())
@@ -174,15 +161,13 @@ class UserControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    @DisplayName("Should create user")
-    void shouldCreateUser() throws Exception {
+    void givenValidRequest_whenAdminPostsUser_thenCreated() throws Exception {
         UserCreateRequest request = new UserCreateRequest(
             "test@example.com",
             "Password123",
             "testuser",
             25
         );
-
         UserResponse response = new UserResponse(
             1L,
             request.email(),
@@ -192,10 +177,9 @@ class UserControllerTest {
             LocalDateTime.now(),
             LocalDateTime.now()
         );
-
         when(userService.create(any(UserCreateRequest.class))).thenReturn(response);
 
-        mockMvc.perform(post("/api/v1/users")
+        mockMvc.perform(post("/api/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
@@ -207,9 +191,8 @@ class UserControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    @DisplayName("Should return 403 for non-admin user")
-    void shouldReturn403ForNonAdmin() throws Exception {
-        mockMvc.perform(get("/api/v1/users")
+    void givenNonAdminUser_whenGetUsers_thenForbidden() throws Exception {
+        mockMvc.perform(get("/api/users")
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isForbidden());
     }
@@ -233,15 +216,13 @@ class UserRepositoryTest {
     private TestEntityManager entityManager;
 
     @Test
-    @DisplayName("Should find user by email")
-    void shouldFindUserByEmail() {
+    void givenPersistedUser_whenFindByEmail_thenFound() {
         User user = User.builder()
             .email("test@example.com")
             .password("password")
             .username("testuser")
             .active(true)
             .build();
-
         entityManager.persistAndFlush(user);
 
         Optional<User> found = userRepository.findByEmail("test@example.com");
@@ -251,15 +232,13 @@ class UserRepositoryTest {
     }
 
     @Test
-    @DisplayName("Should check if email exists")
-    void shouldCheckIfEmailExists() {
+    void givenPersistedUser_whenExistsByEmail_thenTrue() {
         User user = User.builder()
             .email("test@example.com")
             .password("password")
             .username("testuser")
             .active(true)
             .build();
-
         entityManager.persistAndFlush(user);
 
         boolean exists = userRepository.existsByEmail("test@example.com");
@@ -268,11 +247,9 @@ class UserRepositoryTest {
     }
 
     @Test
-    @DisplayName("Should fetch user with roles")
-    void shouldFetchUserWithRoles() {
+    void givenUserWithAdminRole_whenFindByEmailWithRoles_thenRoleLoaded() {
         Role adminRole = Role.builder().name("ADMIN").build();
         entityManager.persist(adminRole);
-
         User user = User.builder()
             .email("admin@example.com")
             .password("password")
@@ -280,7 +257,6 @@ class UserRepositoryTest {
             .active(true)
             .roles(Set.of(adminRole))
             .build();
-
         entityManager.persistAndFlush(user);
         entityManager.clear();
 
@@ -317,16 +293,15 @@ class UserServiceIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should create and find user in real database")
-    void shouldCreateAndFindUser() {
+    void givenCreatedUser_whenFindById_thenFoundInRealDatabase() {
         UserCreateRequest request = new UserCreateRequest(
             "test@example.com",
             "Password123",
             "testuser",
             25
         );
-
         UserResponse created = userService.create(request);
+
         UserResponse found = userService.findById(created.id());
 
         assertThat(found).isNotNull();
@@ -350,8 +325,7 @@ class UserReactiveControllerTest {
     private UserReactiveService userService;
 
     @Test
-    @DisplayName("Should get user reactively")
-    void shouldGetUserReactively() {
+    void givenExistingUser_whenGetById_thenReturned() {
         UserResponse user = new UserResponse(
             1L,
             "test@example.com",
@@ -361,11 +335,10 @@ class UserReactiveControllerTest {
             LocalDateTime.now(),
             LocalDateTime.now()
         );
-
         when(userService.findById(1L)).thenReturn(Mono.just(user));
 
         webTestClient.get()
-            .uri("/api/v1/users/{id}", 1L)
+            .uri("/api/users/{id}", 1L)
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isOk()
@@ -377,15 +350,13 @@ class UserReactiveControllerTest {
     }
 
     @Test
-    @DisplayName("Should create user reactively")
-    void shouldCreateUserReactively() {
+    void givenValidRequest_whenPostUsersReactively_thenCreated() {
         UserCreateRequest request = new UserCreateRequest(
             "test@example.com",
             "Password123",
             "testuser",
             25
         );
-
         UserResponse response = new UserResponse(
             1L,
             request.email(),
@@ -395,11 +366,10 @@ class UserReactiveControllerTest {
             LocalDateTime.now(),
             LocalDateTime.now()
         );
-
         when(userService.create(any(UserCreateRequest.class))).thenReturn(Mono.just(response));
 
         webTestClient.post()
-            .uri("/api/v1/users")
+            .uri("/api/users")
             .contentType(MediaType.APPLICATION_JSON)
             .body(Mono.just(request), UserCreateRequest.class)
             .exchange()
@@ -509,12 +479,14 @@ public class TestDataFactory {
 
 ## Testing Best Practices
 
-- Write tests following AAA pattern (Arrange, Act, Assert)
-- Use descriptive test names with @DisplayName
+- Name and shape every test per `delivery-doctrine:gwt-testing` and `delivery-doctrine:test-first`:
+  `given_when_then` names, blank-line phases, one act per test; no `@DisplayName`
 - Mock external dependencies, use real DB with Testcontainers
-- Achieve 85%+ code coverage
+- Assert outcomes; `verify` a mock only when the interaction is the contract
+- No coverage target: each behavior has a test that fails when it breaks
 - Test happy path and edge cases
-- Use @Transactional for test data cleanup
+- Clean test data explicitly (`deleteAll` in `@BeforeEach`, a fresh container), not with
+  `@Transactional` on the test: its rollback skips the flush and commit, hiding their bugs
 - Separate unit tests from integration tests
 - Use parameterized tests for multiple scenarios
 - Test security rules and validation
