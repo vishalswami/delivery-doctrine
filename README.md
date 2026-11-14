@@ -19,7 +19,8 @@ and language profiles for Java, Python, and Go.
   `execution-hygiene`, `systematic-debugging`, `review-feedback`, `narration-cue-map`; plus
   language profiles — Java (`java-domain`, `spring-boot`, `gwt-testing`, `readable-java-style`,
   `code-quality`, `concurrency-review`, `security-audit`), Python (`python-style`,
-  `pytest-testing`), Go (`go-style`, `go-testing`).
+  `pytest-testing`), Go (`go-style`, `go-testing`); `go-style` and `python-style` keep
+  adapter and concurrency/security depth in `references/`, read when a slice needs it.
 - **2 commands in `bin/`** — `build-scratch` (the lead's git-ignored scratch dir at the main
   checkout's root) and `review-package` (one file holding a slice's commits, stat and diff
   for the critic). Claude Code puts `bin/` on the Bash tool's PATH while the plugin is
