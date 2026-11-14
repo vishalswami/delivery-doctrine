@@ -49,7 +49,7 @@ conform to the house's names, introduce what it lacks, name a plainly bad house 
 - **Constructors keep the invariant.** When the zero value is not a valid X, its fields are
   unexported and `NewX(...) (X, error)` is the way in, so an invalid X cannot exist. It checks
   shape before any I/O; the service never re-checks it. A valid zero value stays useful.
-- **Typed IDs and values.** `type OrderID string` stops a swapped argument at compile time.
+- **Typed IDs and values.** `type ID string` in package `order` (read `order.ID`) stops a swapped argument at compile time.
   Value objects are small structs compared by value; a change returns a new value.
 - **A closed set is a type with a Parse and behaviour**: `type Method string`, its consts,
   `ParseMethod(s string) (Method, error)` called once at the edge, and the classification as a

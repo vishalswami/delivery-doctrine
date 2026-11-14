@@ -70,6 +70,10 @@ public record Money(BigDecimal amount, Currency currency) {
 ```java
 public interface Transactions {
     <T> T inTransaction(Supplier<T> work);
+
+    default void inTransaction(Runnable work) {
+        inTransaction(() -> { work.run(); return null; });
+    }
 }
 ```
   No remote call inside a transaction: it holds the connection for the call, and a commit

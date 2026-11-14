@@ -99,8 +99,8 @@ class PlaceOrderResponse(BaseModel):
 ```
 
 The handler is thin: decode, build the command, call the service, return the DTO. The router
-closes over the service the composition root built, so no `Depends` chain or module global
-reaches for it.
+closes over the service the composition root built (or a `Depends` that returns what the
+root built); no `Depends` chain constructs it and no module global reaches for it.
 
 ```python
 def order_routes(orders: OrderService) -> APIRouter:
@@ -129,14 +129,20 @@ def status_of(error: OrderError) -> int:
         case CreditLimitExceededError() | InvalidAmountError():
             return 422
         case _:
-            return 400
+            return 500
 
 
 def install_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(OrderError)
     async def order_error(request: Request, exc: OrderError) -> JSONResponse:
-        return JSONResponse(status_code=status_of(exc), content={"detail": str(exc)})
+        status = status_of(exc)
+        if status == 500:
+            logger.error("unmapped order error", exc_info=exc)
+        return JSONResponse(status_code=status, content={"detail": str(exc)})
 ```
+
+An unmapped refusal falls to 500 and is logged (with `logger = logging.getLogger(__name__)` at module level), as in Go: a missing mapping shows up instead of
+hiding as a 400.
 
 Anything that is not an `OrderError` is unexpected: no catch-all swallows it, the framework
 answers 500 and the server logs it once. A second front-end over the same service maps with its
