@@ -11,6 +11,9 @@ description: Use when writing or reviewing Go — enforces idiomatic error wrapp
 
 The Go quality profile. Loaded at implementation time for Go work. Pairs with `delivery-doctrine:go-testing`.
 
+**Baseline: Go 1.26**, the older of the two supported releases (1.27 is the newest), for
+go-style and go-testing. A feature newer than 1.26 is named with its version.
+
 House names and structure first (`delivery-doctrine:ddd-hexagonal-reviewer`, applicability guard):
 conform to the house's names, introduce what it lacks, name a plainly bad house rule rather than follow or bypass it.
 
@@ -84,10 +87,11 @@ conform to the house's names, introduce what it lacks, name a plainly bad house 
   an interface appears when a second implementation does.
 - **Inbound adapters live in subpackages**, so the domain package carries no transport. One
   that needs an unexported rule gets it exported as a function, never an `export_test.go` leak.
-- **The domain imports inward only**: the stdlib, other domain packages, value libraries such
-  as `github.com/google/uuid`. No ORM models, no generated wire types, no framework helpers;
-  event DTO builders live with the publisher. Pin it where the house runs golangci-lint;
-  `allow` matches by prefix, so each domain package it may import is listed exact (`$`):
+- **The domain imports inward only**: the stdlib (`uuid` is standard from 1.27), other domain
+  packages, a value module the house already uses. No ORM models, no generated wire types, no
+  framework helpers; event DTO builders live with the publisher. Pin it where the house runs
+  golangci-lint; `allow` matches by prefix, so each domain package it may import is listed exact
+  (`$`), and a third-party value module is added to `allow` the same way:
 
 ```yaml
 linters:
@@ -97,7 +101,7 @@ linters:
         order-domain:
           list-mode: strict
           files: ["**/internal/order/*.go", "!$test"]
-          allow: [$gostd, github.com/google/uuid, github.com/acme/shop/internal/money$]
+          allow: [$gostd, github.com/acme/shop/internal/money$]
 ```
 - **`cmd/<app>/main.go` is the composition root**: it reads config, builds the adapters and
   passes them to constructors, so every dependency is visible in one place and a test can
@@ -105,7 +109,7 @@ linters:
 
 ## Stack right-sizing
 A CLI or batch tool is a `main` + packages. For services, stdlib `http.ServeMux` is the
-default (Go 1.22+: `mux.HandleFunc("GET /orders/{id}", ...)`, `r.PathValue("id")`); a
+default (`mux.HandleFunc("GET /orders/{id}", ...)`, `r.PathValue("id")`); a
 third-party router only if the house already uses one. Same "invent nothing" rule as the
 architecture.
 

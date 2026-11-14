@@ -96,7 +96,8 @@ keeps it (`go:embed`ded `.sql` files are common).
 
 The handler holds the concrete `*order.Service`. It decodes a `json`-tagged DTO (domain types
 carry no tags), builds the command through the domain constructor, calls the service and maps
-the error in one function. Nothing else.
+the error in one function. Nothing else. From 1.27, `encoding/json/v2` (`json.UnmarshalRead`)
+is the stricter choice: it rejects invalid UTF-8 and duplicate names; v1 keeps working.
 
 ```go
 const maxBody = 1 << 20

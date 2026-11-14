@@ -4,7 +4,7 @@ mkdir -p internal/order
 cat > go.mod <<'GO'
 module example.com/shop
 
-go 1.24
+go 1.26
 GO
 cat > internal/order/order.go <<'GO'
 package order

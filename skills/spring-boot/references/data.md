@@ -7,7 +7,7 @@ Read when the slice touches persistence. The persistence adapter lives in
 to and from the aggregate (`delivery-doctrine:java-domain`). Examples carry ✅/❌ labels to
 teach; delivered code carries none.
 
-Spring Boot 4 ships Spring Data 2025.1 (Spring Data JPA 4) on Hibernate 7 and Jakarta Persistence 3.2. `@EntityScan` moved to `org.springframework.boot.persistence.autoconfigure.EntityScan`, `hibernate-jpamodelgen` is replaced by `hibernate-processor`, and `spring.dao.exceptiontranslation.enabled` is now `spring.persistence.exceptiontranslation.enabled`. Set `spring.jpa.open-in-view=false`.
+Spring Boot 4.1 ships Spring Data JPA 4.1 on Hibernate 7.4 and Jakarta Persistence 3.2. `@EntityScan` moved to `org.springframework.boot.persistence.autoconfigure.EntityScan`, `hibernate-jpamodelgen` is replaced by `hibernate-processor`, and `spring.dao.exceptiontranslation.enabled` is now `spring.persistence.exceptiontranslation.enabled`. Set `spring.jpa.open-in-view=false`.
 
 ## Entity, repository, adapter
 ```java

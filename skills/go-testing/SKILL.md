@@ -24,7 +24,7 @@ phases, one act per test, zero comments. Go specifics below.
 Each case is one behavior: the name reads given/when/then, the fields are the Given, the
 loop body is one When + Then. Don't force unrelated behaviors into one table — two
 tables beat one confused one. Call `t.Parallel()` in tests and subtests unless they
-share mutable state; Go 1.22+ loop variables are per-iteration — no `tt := tt` copy.
+share mutable state; loop variables are per-iteration, so no `tt := tt` copy.
 
 ## Doubles — fakes at ports first
 - **A hand-written fake is the default double** for a port the domain owns: an in-memory
@@ -54,7 +54,7 @@ for outcome checks. It is a house choice over the Google style guide's plain
 
 ## Helpers and cleanup
 Test helpers take `*testing.T` and call `t.Helper()`; register teardown with `t.Cleanup`
-(also `t.TempDir`, `t.Setenv`). Go 1.24+: `t.Context()` over `context.Background()`.
+(also `t.TempDir`, `t.Setenv`). `t.Context()` over `context.Background()`.
 
 ## The loop
 - Run only the test you're on, by name: `go test -run '^TestAuthenticate$/given_expired_token' ./path/to/pkg`

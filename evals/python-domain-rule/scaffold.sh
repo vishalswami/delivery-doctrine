@@ -5,7 +5,7 @@ cat > pyproject.toml <<'PY'
 [project]
 name = "shop"
 version = "0.1.0"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

@@ -6,7 +6,7 @@ Read when the slice configures authentication, authorization, CSRF, CORS or head
 Boot 4 service. What to check in a review is `delivery-doctrine:security-audit`'s; this file is
 how to configure it. Apply only the security the requirements or the house name.
 
-Spring Boot 4 ships Spring Security 7: the lambda DSL is required (no `.and()` chaining; custom
+Spring Boot 4.1 ships Spring Security 7.1: the lambda DSL is required (no `.and()` chaining; custom
 DSLs use `http.with(...)` instead of `apply(...)`), and the OAuth2 starters are
 `spring-boot-starter-security-oauth2-resource-server` / `-client` / `-authorization-server`
 (Spring Authorization Server is now part of Spring Security).

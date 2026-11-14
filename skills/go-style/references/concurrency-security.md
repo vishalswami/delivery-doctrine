@@ -73,7 +73,7 @@ func produce(ctx context.Context, ids []ID, out chan<- ID) error {
   user input as HTML.
 - **Commands without a shell**: `exec.CommandContext(ctx, "git", "log", ref)`, never
   `sh -c` with input in the string.
-- **Randomness for tokens from `crypto/rand`** (`rand.Text()` on Go 1.24+); `math/rand` is for
+- **Randomness for tokens from `crypto/rand`** (`rand.Text()`); `math/rand` is for
   simulations.
 - **Secrets come from the environment or a secret manager**, read once in `main` and passed in.
   They are never logged: a `Secret` type whose `LogValue() slog.Value` returns a redaction keeps

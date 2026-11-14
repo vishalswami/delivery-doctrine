@@ -10,7 +10,7 @@ the default; asyncio earns its place only when the work is many concurrent I/O w
   async library (`httpx.AsyncClient`, `asyncpg`, psycopg's async connection) or move the call
   off the loop with `await asyncio.to_thread(render_pdf, order)`. Ruff's `ASYNC` rules flag the
   common cases; `asyncio.run(main(), debug=True)` logs any callback slower than 100 ms.
-- **Fan-out uses `asyncio.TaskGroup`** (3.11+). The first task to fail cancels the rest, and the
+- **Fan-out uses `asyncio.TaskGroup`**. The first task to fail cancels the rest, and the
   failures arrive together as an `ExceptionGroup`, handled with `except*`. The group keeps
   strong references and awaits every task; a bare `create_task` whose result is dropped can be
   garbage-collected mid-run and its exception lost.
@@ -24,7 +24,7 @@ async def refresh_all(order_ids: Sequence[OrderId]) -> None:
 ```
 
 - **Bound the concurrency** with an `asyncio.Semaphore` when the far side has a limit.
-- **Cancellation propagates.** `asyncio.timeout` (3.11+) cancels the block and raises
+- **Cancellation propagates.** `asyncio.timeout` cancels the block and raises
   `TimeoutError` outside it. `CancelledError` derives from `BaseException`, so `except Exception`
   does not catch it; code that catches it explicitly cleans up and re-raises, because
   `TaskGroup` and `timeout` rely on it arriving.

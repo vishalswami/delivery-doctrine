@@ -75,7 +75,7 @@ catch (IOException e) {
   context's domain exception (`java-domain`).
 
 ## Resources
-Anything `AutoCloseable` (streams, JDBC objects, clients, executors on Java 19+) opens in
+Anything `AutoCloseable` (streams, JDBC objects, clients, executors) opens in
 try-with-resources, so it closes on every path; a manual `close()` after the work leaks when
 the work throws.
 

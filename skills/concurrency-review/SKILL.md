@@ -3,7 +3,7 @@ name: concurrency-review
 description: Use when writing or reviewing Java code that runs on more than one thread —
   shared mutable state, race conditions (check-then-act, visibility), deadlocks and lock
   ordering, concurrent collections, virtual threads and pinning, ScopedValue, structured
-  concurrency (JDK 25 StructuredTaskScope), CompletableFuture, Spring @Async and its executor,
+  concurrency (preview StructuredTaskScope), CompletableFuture, Spring @Async and its executor,
   and the open-in-view connection-pool deadlock. Triggers on "thread safety", "concurrency
   review", "race condition", "deadlock", "async code review", synchronized, volatile, executors.
 ---
@@ -67,18 +67,18 @@ synchronized (first) {
 | Producer and consumer | `ArrayList` plus `wait` | `BlockingQueue` |
 | Sorted and concurrent | `TreeMap` | `ConcurrentSkipListMap` |
 
-## Virtual threads (Java 21+)
+## Virtual threads
 - For blocking I/O, one per task: `Executors.newVirtualThreadPerTaskExecutor()` in
   try-with-resources, or `spring.threads.virtual.enabled=true` in Boot. CPU-bound work gains
   nothing; it belongs on a bounded platform pool.
 - Never pool virtual threads. Limit concurrency against a scarce resource with a `Semaphore`.
-- Pinning: since JDK 24 (JEP 491, so Java 25 LTS) `synchronized` no longer pins the carrier while
-  blocked. A thread still pins when a native or FFM frame is on its stack and the Java callback
-  blocks, when it blocks while loading a class, when it blocks inside a class initializer, and
-  while it waits for a class another thread is initialising. On Java 21, blocking I/O inside
-  `synchronized` pins: use a `ReentrantLock`. The JFR event `jdk.VirtualThreadPinned` reports why.
-- `ThreadLocal` caches multiply with a thread per task. Request context goes in a `ScopedValue`
-  (final in Java 25): bound for a call, read with `get()`, inherited only by subtasks forked in a
+- Pinning: since JDK 24 (JEP 491) `synchronized` no longer pins the carrier while blocked. A
+  thread still pins when a native or FFM frame is on its stack and the Java callback blocks,
+  when it blocks while loading a class, when it blocks inside a class initializer, and while it
+  waits for a class another thread is initialising. On a house JDK before 24, blocking I/O
+  inside `synchronized` pins: use a `ReentrantLock`. JFR's `jdk.VirtualThreadPinned` says why.
+- `ThreadLocal` caches multiply with a thread per task. Request context goes in a `ScopedValue`:
+  bound for a call, read with `get()`, inherited only by subtasks forked in a
   `StructuredTaskScope`, not by threads started through an executor.
 
 ```java
@@ -87,7 +87,7 @@ private static final ScopedValue<CustomerId> CALLER = ScopedValue.newInstance();
 ScopedValue.where(CALLER, customerId).run(() -> placeOrder.handle(command));
 ```
 
-## Structured concurrency (JDK 25 preview, `--enable-preview`)
+## Structured concurrency (preview in Java 25 and 27, `--enable-preview`)
 Subtasks that serve one result share one scope: it waits for them, fails on the first failure
 and cancels the rest, so none outlives the method.
 
@@ -107,8 +107,9 @@ try (var scope = StructuredTaskScope.open()) {
   wins), `allSuccessfulOrThrow()` (a stream of subtasks), `awaitAll()`, `allUntil(predicate)`.
 - A deadline: `open(joiner, config -> config.withTimeout(Duration.ofSeconds(2)))`; expiry throws
   `StructuredTaskScope.TimeoutException`.
-- The preview API changes between releases (`ShutdownOnFailure`, `throwIfFailed()` are gone):
-  only where the house builds with preview on.
+- The API above is Java 25's and changes each release: Java 27 adds an exception type parameter,
+  `join()` throws `ExecutionException`, and `awaitAll()` is gone. Only where the house builds
+  with preview on.
 
 ## Rationale and review
 - No comments (`delivery-doctrine:readable-java-style`): a thread-safety guarantee is pinned by a

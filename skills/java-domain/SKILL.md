@@ -14,6 +14,9 @@ The Java profile's domain and hexagon. `delivery-doctrine:spring-boot` shows Spr
 this skill keeps Spring out of the domain. Loaded at implementation and review time for Java
 work, beside `delivery-doctrine:readable-java-style` and `delivery-doctrine:gwt-testing`.
 
+**Baseline: Java 25 (LTS)** for every Java skill here; Java 27 is the newest release. A feature
+newer than 25 is named with its version; on an older house JDK, check before using one.
+
 House names and structure first (`delivery-doctrine:ddd-hexagonal-reviewer`, applicability guard):
 conform to the house's names, introduce what it lacks, name a plainly bad house rule rather than follow or bypass it.
 
@@ -41,8 +44,8 @@ public record Money(BigDecimal amount, Currency currency) {
   in the adapter that enforces the same rule against a read-update-persist race is right; the
   method mirrors it and one test pins the two together.
 - **Closed sets**: an `enum` with the behaviour on its constants. Outcomes that carry
-  different data are a `sealed interface` of records, consumed with an exhaustive `switch`
-  (Java 21), so a new case breaks the build rather than a test.
+  different data are a `sealed interface` of records, consumed with an exhaustive `switch`,
+  so a new case breaks the build rather than a test.
 - **Domain exceptions**: one unchecked base per bounded context
   (`OrderException extends RuntimeException`), subclasses named for the refusal. Wrap a cause
   with the cause constructor; log once, where the exception is handled, never log and rethrow.

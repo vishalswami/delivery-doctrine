@@ -30,8 +30,7 @@ CompletableFuture.supplyAsync(() -> rates.fetch(currency), ioExecutor)
   `ForkJoinPool.commonPool()`, sized for CPU work and shared by the whole JVM: blocking I/O there
   starves everyone. Pass an executor: virtual threads (`newVirtualThreadPerTaskExecutor()`) or a
   bounded pool for I/O, the common pool only for short CPU work.
-- **Executors are shut down**: try-with-resources (`ExecutorService` is `AutoCloseable` since
-  Java 19) or the owning bean's lifecycle; a pool created per call leaks threads.
+- **Executors are shut down**: try-with-resources (`ExecutorService` is `AutoCloseable`) or the owning bean's lifecycle; a pool created per call leaks threads.
 
 ## Spring @Async
 - **`@EnableAsync`** on a `@Configuration` class, or `@Async` silently runs synchronously.

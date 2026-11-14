@@ -13,6 +13,9 @@ The Python quality profile. Loaded at implementation time for Python work (the l
 is chosen after the grill, per right-sizing — the grill and slicing are language-agnostic).
 Pairs with `delivery-doctrine:pytest-testing`.
 
+**Baseline: Python 3.14**, the oldest release still taking bug fixes (3.15 is the newest), for
+python-style and pytest-testing. A feature newer than 3.14 is named with its version.
+
 House names and structure first (`delivery-doctrine:ddd-hexagonal-reviewer`, applicability guard):
 conform to the house's names, introduce what it lacks, name a plainly bad house rule rather than follow or bypass it.
 
@@ -32,10 +35,11 @@ conform to the house's names, introduce what it lacks, name a plainly bad house 
   files you touched (`ruff check <paths>`), per `delivery-doctrine:execution-hygiene`.
 
 ## Domain types
-- **Value objects are `@dataclass(frozen=True, slots=True)`** (`slots` needs 3.10+;
-  `NamedTuple` where tuple behaviour is wanted). `__post_init__` checks the invariant and
-  raises a domain error; frozen means a valid instance stays valid, and a change returns a
-  new value (`dataclasses.replace`). No bare dicts or tuples standing in for domain types.
+- **Value objects are `@dataclass(frozen=True, slots=True)`** (`NamedTuple` where tuple
+  behaviour is wanted). `__post_init__` checks the invariant and raises a domain error; frozen
+  means a valid instance stays valid, and a change returns a new value (`dataclasses.replace`).
+  No bare dicts or tuples standing in for domain types; a mapping field is a `frozendict`
+  (3.15+) or a tuple of pairs, so the value stays hashable.
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -48,9 +52,9 @@ class Money:
             raise NegativeAmountError(self.amount)
 ```
 - **Typed IDs and closed sets.** `OrderId = NewType("OrderId", str)` lets mypy catch a
-  swapped argument. A closed set is an `Enum` (`StrEnum` on 3.11+), parsed once at the edge,
-  with its classification as a method or property on the enum, so the rule sits on the value
-  rather than in a module-level set of strings.
+  swapped argument. A closed set is an `Enum` (`StrEnum` for string values), parsed once at
+  the edge, with its classification as a method or property on the enum, so the rule sits on
+  the value rather than in a module-level set of strings.
 - **Entities carry their rules.** `@dataclass(eq=False)` keeps identity equality (or define
   `__eq__` and `__hash__` on the id). State changes are methods that keep the invariant;
   callers don't assign attributes, so it has one keeper. `@property` only for derived values;

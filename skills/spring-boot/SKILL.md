@@ -96,7 +96,7 @@ class OrderControllerTest {
 - No hardcoded URLs, credentials or environment values; no deprecated Boot 2/3 APIs.
 
 ## Spring Boot 4 notes
-- Baseline: Java 17+ (21 or 25 LTS recommended), Spring Framework 7, Jakarta EE 11 (Servlet 6.1), Spring Security 7, Spring Data 2025.1, Hibernate 7, JUnit Jupiter 6, Testcontainers 2
+- Baseline: Spring Boot 4.1 (latest GA) on Java 25 (Boot itself needs 17+ and runs up to 27), with Spring Framework 7, Jakarta EE 11 (Servlet 6.1), Spring Security 7.1, Spring Data JPA 4.1, Hibernate 7.4, JUnit Jupiter 6, Testcontainers 2. Move to Boot 4.2 once it is GA
 - Jackson 3 is the default: packages and group IDs move from `com.fasterxml.jackson` to `tools.jackson` (annotations stay in `com.fasterxml.jackson.annotation`); `@JsonComponent` is `@JacksonComponent`, `Jackson2ObjectMapperBuilderCustomizer` is `JsonMapperBuilderCustomizer`; to replace the mapper, define a `JsonMapper` bean. Jackson 3 no longer fails on unknown properties by default
 - Modular starters: `spring-boot-starter-web` is `spring-boot-starter-webmvc`, `spring-boot-starter-oauth2-*` is `spring-boot-starter-security-oauth2-*`, `spring-boot-starter-aop` is `spring-boot-starter-aspectj`; Flyway and Liquibase need `spring-boot-starter-flyway` / `spring-boot-starter-liquibase`
 - Test slices live in per-technology modules and packages: `@WebMvcTest` in `org.springframework.boot.webmvc.test.autoconfigure` (`spring-boot-webmvc-test`), `@DataJpaTest` in `org.springframework.boot.data.jpa.test.autoconfigure` (`spring-boot-data-jpa-test`), `@WebFluxTest` in `org.springframework.boot.webflux.test.autoconfigure`
@@ -105,7 +105,7 @@ class OrderControllerTest {
 - `@EntityScan` is `org.springframework.boot.persistence.autoconfigure.EntityScan`; Actuator's `HealthIndicator`/`Health` are in `org.springframework.boot.health.contributor`
 - Spring Framework 7 null safety uses JSpecify (`org.jspecify.annotations.Nullable`, `@NullMarked`); the `org.springframework.lang` annotations are deprecated
 - Undertow is removed; Spring Retry is no longer version-managed (Framework 7 has `@Retryable` in core)
-- Spring Cloud release train for Boot 4 is 2025.1.x (Oakwood); where the house runs Gateway 5, it is `spring-cloud-starter-gateway-server-webflux` (or `-webmvc`) with properties under `spring.cloud.gateway.server.webflux.*`, the old starter and `spring.cloud.gateway.*` prefix gone
+- Spring Cloud release train for Boot 4.1 is 2025.1.x (Oakwood), from 2025.1.2; where the house runs Gateway 5, it is `spring-cloud-starter-gateway-server-webflux` (or `-webmvc`) with properties under `spring.cloud.gateway.server.webflux.*`, the old starter and `spring.cloud.gateway.*` prefix gone
 
 ## References
 - `references/web.md` when the slice adds or changes an endpoint: HTTP contract, validation, `ProblemDetail`, outbound `RestClient`, CORS.
