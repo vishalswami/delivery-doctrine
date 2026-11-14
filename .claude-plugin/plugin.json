@@ -1,7 +1,7 @@
 {
   "name": "delivery-doctrine",
   "displayName": "Delivery Doctrine",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "A gear-based agentic delivery method: hypothesis-first grilling, vertical slicing with hard alignment gates, a test-first implementer/critic loop run in waves of parallel PRs, right-sized architecture (hexagonal only where it earns it, honor existing codebases), and language profiles for Java, Python, and Go.",
   "author": {
     "name": "Vishal Swami"
