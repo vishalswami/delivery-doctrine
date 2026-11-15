@@ -239,7 +239,17 @@ Issues and pull requests are welcome.
    a gear and starts the grill, that the right skills load for a flaky test, review comments, a
    small change or a Java, Go or Python change, and that the agent never claims done without
    evidence.
-4. Open a pull request that says what changed and why.
+4. If you touch `hooks/guard-bash.sh`, run its regression suite and add a case for the
+   command you changed it for. CI runs it on Linux and macOS for every pull request:
+
+   ```bash
+   python3 -I tests/guard.py
+   ```
+
+   Each case states whether the guard must deny or allow it, and cases that should be
+   harmless also run through real bash with stubbed programs, to prove nothing destructive
+   executes.
+5. Open a pull request that says what changed and why.
 
 ### Releasing (maintainer)
 
