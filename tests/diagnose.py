@@ -111,10 +111,12 @@ def check_followed_session_is_clean(report):
 
 
 def check_bundle(bundle):
-    forbidden = ["SENTINEL", "example.com", "/Users/", "jane", "order.go", "order_test", "shop", "sk-ant", "gen.py"]
+    forbidden = ["SENTINEL", "example.com", "/Users/", "jane", "order.go", "order_test", "shop", "sk-ant", "gen.py",
+                 "acme", "refusing"]
     failures = [f"bundle: contains {word!r}" for word in forbidden if word in bundle]
     for want in ("Removed:", "skill grill-fast", "hook PreToolUse:Bash deny", "edit Write .go", "agent delivery-doctrine:implementer",
-                 "refusing to write <path .yaml> or <path .md> for <email>"):
+                 "git push --force is blocked; use --force-with-lease", "PreToolUse:Write  <reason redacted>",
+                 "skill <other skill>", "agent <custom agent>"):
         if want not in bundle:
             failures.append(f"bundle: missing {want!r}")
     return failures

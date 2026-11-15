@@ -14,9 +14,9 @@ import sys
 import tempfile
 
 HOOK = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hooks", "guard-bash.sh")
-STUBBED = ["rm", "sudo", "pkill", "killall", "git", "gh", "chmod", "mkfs", "dd", "ash", "make", "go", "ls"]
+STUBBED = ["rm", "sudo", "pkill", "killall", "git", "gh", "chmod", "mkfs", "dd", "ash", "make", "go", "ls", "kill"]
 PASSTHROUGH = ["bash", "sh", "cat", "echo", "find", "xargs", "env"]
-ABSOLUTE_BINARY = re.compile(r"(^|[\s;&|(`'\"])/(usr/)?s?bin/")
+ABSOLUTE_BINARY = re.compile(r"(^|[\s;&|(`'\"<>=])/\S*bin/")
 
 DANGEROUS = [
     'rm -rf /',
@@ -284,7 +284,7 @@ def bash_runs_destructive(command, path, scratch):
     log = os.path.join(scratch, "log")
     open(log, "w").close()
     env = {"PATH": path, "STUBLOG": log, "HOME": scratch, "LC_ALL": "C"}
-    proc = subprocess.Popen(["bash", "-c", command], cwd=scratch, env=env, stdin=subprocess.DEVNULL,
+    proc = subprocess.Popen(["bash", "-c", "enable -n kill\n" + command], cwd=scratch, env=env, stdin=subprocess.DEVNULL,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     try:
         proc.wait(timeout=5)

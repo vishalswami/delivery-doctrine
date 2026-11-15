@@ -3,12 +3,14 @@ set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
 export DOCTRINE_SKILLS="$here/../skills"
+export DOCTRINE_GUARD_SOURCE="$here/../hooks/guard-bash.sh"
 exec python3 -I - "$@" <<'PY'
 """Report what the delivery doctrine did in one Claude Code session.
 
 usage: doctrine-diagnose [SESSION_ID | TRANSCRIPT] [--bundle FILE]
 """
 import argparse
+import copy
 import glob
 import json
 import os
@@ -30,13 +32,16 @@ LANGUAGES = {
     ".java": ("Java", ("readable-java-style", "java-domain"), ("gwt-testing",)),
 }
 PLUGIN = "delivery-doctrine"
+BUILTIN_AGENTS = {"general-purpose", "Explore", "Plan", "statusline-setup", "claude-code-guide"}
 SIDECHAIN_HEADING = "Subagent sessions (sidechain)"
 MISSES_HEADING = "Likely misses (heuristics, not proof)"
 REMOVED = ("message text (prompts, replies, thinking), file contents, command text, tool inputs and outputs, "
            "subagent descriptions and prompts, MCP server and tool names, the transcript path and session id. "
            "File paths are cut to their extension; emails, tokens and home paths are redacted.")
-KEPT = ("Claude Code version, timestamps, counts, tool names, skill names, subagent types and models, "
-        "hook names and their reasons, file extensions. Read it before you post it.")
+KEPT = ("Claude Code version, timestamps, counts, built-in tool names, delivery-doctrine skill names, "
+        "delivery-doctrine and built-in subagent types and models, the guard's own denial reasons, file "
+        "extensions. Other skills, agents and hook reasons are replaced by placeholders. "
+        "Read it before you post it.")
 REDACTIONS = [
     (re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+"), "<email>"),
     (re.compile(r"\b(sk-[\w-]{16,}|gh[pousr]_\w{20,}|github_pat_\w{20,}|xox[abprs]-[\w-]{10,}"
@@ -440,7 +445,46 @@ def redact(text):
     return PATH.sub(path_to_extension, text)
 
 
+def guard_reasons():
+    try:
+        with open(os.environ.get("DOCTRINE_GUARD_SOURCE", ""), encoding="utf-8") as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def public_skill(skill, doctrine):
+    return skill if is_doctrine_skill(skill) and short(skill) in doctrine else "<other skill>"
+
+
+def public_agent(agent):
+    return agent if agent.startswith(PLUGIN + ":") or agent in BUILTIN_AGENTS else "<custom agent>"
+
+
+def public_hook(hook):
+    event, _, tool = hook.partition(":")
+    return f"{event}:{public_tool(tool)}" if tool else event
+
+
+def public_scopes(scopes, skills_dir):
+    doctrine, guard = doctrine_skills(skills_dir), guard_reasons()
+    scopes = copy.deepcopy(scopes)
+    for scope in scopes.values():
+        scope["label"] = public_agent(scope["label"]) if scope["label"] else ""
+        for event in scope["events"]:
+            if event["kind"] == "skill":
+                event["skill"] = public_skill(event["skill"], doctrine)
+            elif event["kind"] == "agent":
+                event["agent"] = public_agent(event["agent"])
+            elif event["kind"] == "denial":
+                own = event["hook"] == "PreToolUse:Bash" and event["reason"] and event["reason"] in guard
+                event["hook"] = public_hook(event["hook"])
+                event["reason"] = event["reason"] if own else "<reason redacted>"
+    return scopes
+
+
 def bundle(scopes, skills_dir):
+    scopes = public_scopes(scopes, skills_dir)
     lines = ["doctrine-diagnose bundle, scrubbed for a public issue", f"Removed: {REMOVED}", f"Kept: {KEPT}", ""]
     lines += render(scopes, "", skills_dir, scrub=True) + ["", "Timeline"] + timeline(scopes)
     return redact("\n".join(lines)) + "\n"

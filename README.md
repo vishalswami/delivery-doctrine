@@ -234,9 +234,10 @@ claude plugin uninstall delivery-doctrine
 claude plugin marketplace remove delivery-doctrine
 ```
 
-Nothing else is left behind except files you created yourself: `~/.claude/delivery-doctrine.md`,
-any `.claude/delivery-doctrine*.md` repository profiles, and `DOCTRINE_*` entries you added to
-`settings.json`.
+What stays behind, to delete by hand if you like: the git-ignored `.delivery-doctrine/` scratch
+folder in repositories where you ran full gear, `~/.claude/delivery-doctrine/` (keep-awake's
+reminder state), and anything you created yourself: `~/.claude/delivery-doctrine.md`,
+`.claude/delivery-doctrine*.md` repository profiles, and `DOCTRINE_*` entries in `settings.json`.
 
 ## Principles
 

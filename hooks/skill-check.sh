@@ -9,7 +9,9 @@ python3 -I - <<'PY' 2>/dev/null
 import json, os
 
 ALWAYS = [
-    ("grill-fast / grill-brownfield", "a new feature or plan to agree first (greenfield / existing code)"),
+    ("grill-fast", "a new feature or plan to agree first, greenfield"),
+    ("grill-brownfield", "a new feature or plan to agree first, in existing code"),
+    ("thin-slice-planner", "slicing agreed requirements into a plan"),
     ("fast-path", "a small change, bugfix, spike or throwaway"),
     ("test-first", "writing any test or production code"),
     ("systematic-debugging", "a bug, failing test, hang or surprise"),
