@@ -1,7 +1,9 @@
 #!/bin/bash
 # PreToolUse guard for Bash: blocks destructive commands the doctrine enforces
 # rather than instructs. Allows git push --force-with-lease (rebasing a PR onto new main).
+# DOCTRINE_GUARD=0 turns it off; DOCTRINE_GUARD_HYGIENE=0 keeps only the destructive rules.
 export HOOK_INPUT="$(cat)"
+[ "${DOCTRINE_GUARD:-1}" = "0" ] && exit 0
 python3 -I - <<'PY'
 import json, os, re, sys
 
@@ -139,7 +141,7 @@ def recursive_force_rm(command):
 
 
 joined = re.sub(r'\\\n', '', cmd)
-reason = hygiene(joined)
+reason = hygiene(joined) if os.environ.get("DOCTRINE_GUARD_HYGIENE") != "0" else None
 if reason:
     rules.append((r'', reason))
 

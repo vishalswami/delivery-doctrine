@@ -221,10 +221,24 @@ SAFE = [
     'git push origin feat && git status -f\n',
 ]
 
+SWITCHED = [
+    ({"DOCTRINE_GUARD": "0"}, "rm -rf /", "allow"),
+    ({"DOCTRINE_GUARD": "0"}, "go test ./...", "allow"),
+    ({"DOCTRINE_GUARD": "1"}, "sudo ls", "deny"),
+    ({"DOCTRINE_GUARD_HYGIENE": "0"}, "go test ./...", "allow"),
+    ({"DOCTRINE_GUARD_HYGIENE": "0"}, "pytest", "allow"),
+    ({"DOCTRINE_GUARD_HYGIENE": "0"}, "while true; do sleep 5; done", "allow"),
+    ({"DOCTRINE_GUARD_HYGIENE": "0"}, "sudo ls", "deny"),
+    ({"DOCTRINE_GUARD_HYGIENE": "0"}, "git push --force origin main", "deny"),
+    ({"DOCTRINE_GUARD_HYGIENE": "0"}, "rm -rf build", "deny"),
+]
 
-def hook_decision(command):
+
+def hook_decision(command, switches=None):
     payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
-    out = subprocess.run(["bash", HOOK], input=payload, capture_output=True, text=True, timeout=20).stdout
+    env = {k: v for k, v in os.environ.items() if not k.startswith("DOCTRINE_")}
+    env.update(switches or {})
+    out = subprocess.run(["bash", HOOK], input=payload, capture_output=True, text=True, timeout=20, env=env).stdout
     return "deny" if '"deny"' in out else "allow"
 
 
@@ -299,9 +313,13 @@ def main():
                 with tempfile.TemporaryDirectory(dir=root) as scratch:
                     if bash_runs_destructive(command, path, scratch):
                         failures.append(f"{kind}: bash runs something destructive, so this case belongs in DANGEROUS: {command!r}")
+    for switches, command, want in SWITCHED:
+        got = hook_decision(command, switches)
+        if got != want:
+            failures.append(f"switch {switches}: hook said {got}, expected {want}: {command!r}")
     for failure in failures:
         print(failure)
-    print(f"{len(expectations)} cases, {len(failures)} failures")
+    print(f"{len(expectations) + len(SWITCHED)} cases, {len(failures)} failures")
     sys.exit(1 if failures else 0)
 
 
