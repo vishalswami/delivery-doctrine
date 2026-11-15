@@ -67,6 +67,9 @@ a top-level `bin/`.
 
 ### Skills
 
+Each skill loads on its own at the step that needs it; you never have to type one, though you
+can (for example `/delivery-doctrine:grill-fast`) to jump straight to a step.
+
 | Area | Skill | What it does |
 |---|---|---|
 | **Plan** | `grill-fast` | Greenfield requirements grill: batched questions, acceptance tests locked fast |
@@ -107,7 +110,8 @@ the main session.
 | Hook | What it does |
 |---|---|
 | Doctrine | Injects the method at session start, plus your profiles (below) |
-| Guard | Blocks destructive commands (`rm -rf`, `sudo`, force-push, `git reset --hard`, …), wide local test runs and sleep-poll loops. It matches the raw command, so a commit message that merely mentions one is refused too; write the message to a file and use `git commit -F <file>` |
+| Guard | Blocks destructive commands (`rm -rf`, `sudo`, force-push, `git reset --hard`, …), wide local test runs and sleep-poll loops. It matches the raw command, so a commit message that merely mentions one is refused too; write the message to a file and use `git commit -F <file>`. Can be relaxed or turned off (see Switches) |
+| Skill check | Before acting on each message, the agent writes a one-line YES/NO for the skills that could apply and loads every YES; candidates follow the repository's language. A written decision makes skill loading reliable where a plain reminder does not |
 | Anchor | Past 150k tokens of context, restates five core rules next to each message, where a long context still attends to them |
 | Keep-awake | macOS: stops the machine idle-sleeping while a session runs |
 
@@ -170,6 +174,9 @@ Set in the `env` block of `~/.claude/settings.json`.
 | Variable | Default | Effect |
 |---|---|---|
 | `DOCTRINE_WIDE_TESTS=1` | off | Prefix one command to let a wide test run past the guard |
+| `DOCTRINE_GUARD_HYGIENE=0` | on | Keep only the guard's destructive-command blocks; allow wide test runs and sleep-poll loops |
+| `DOCTRINE_GUARD=0` | on | Turn the guard off entirely |
+| `DOCTRINE_SKILL_CHECK=0` | on | Turn off the per-message skill check |
 | `DOCTRINE_ANCHOR=0` | on | Turn off the long-session anchor |
 | `DOCTRINE_ANCHOR_TOKENS` | `150000` | Context size at which the anchor starts |
 | `DOCTRINE_KEEP_AWAKE=0` | on | Turn off keep-awake (macOS) |
@@ -209,7 +216,19 @@ claude plugin marketplace update delivery-doctrine
 claude plugin update delivery-doctrine
 ```
 
-Then restart your sessions; a running session keeps the version it started with.
+Then restart your sessions; a running session keeps the version it started with. What changed
+in each release is in [`CHANGELOG.md`](CHANGELOG.md).
+
+To uninstall:
+
+```bash
+claude plugin uninstall delivery-doctrine
+claude plugin marketplace remove delivery-doctrine
+```
+
+Nothing else is left behind except files you created yourself: `~/.claude/delivery-doctrine.md`,
+any `.claude/delivery-doctrine*.md` repository profiles, and `DOCTRINE_*` entries you added to
+`settings.json`.
 
 ## Principles
 
@@ -222,7 +241,13 @@ Then restart your sessions; a running session keeps the version it started with.
 
 ## Contributing
 
-Issues and pull requests are welcome.
+Issues and pull requests are welcome. For a session that went wrong, run the `diagnose` skill
+and attach the bundle it writes.
+
+The doctrine stays small on purpose, so new skills are usually declined: open an issue first
+and say what failure it fixes that the existing skills don't. Fixes, sharper wording, better
+examples and new eval cases are the most welcome. Pull requests written by an agent are fine
+when a person has read and stands behind every line.
 
 1. Fork the repository and work on a branch.
 2. Keep to its conventions: no comments in code examples beyond the ✅/❌ labels that mark
@@ -253,7 +278,8 @@ Issues and pull requests are welcome.
 
 ### Releasing (maintainer)
 
-Bump `version` in `.claude-plugin/plugin.json` and merge to `main`. The marketplace follows
+Bump `version` in `.claude-plugin/plugin.json`, add the release to `CHANGELOG.md`, tag it,
+and merge to `main`. The marketplace follows
 `main`, so users get the release with `claude plugin update`.
 
 ## License and credits
