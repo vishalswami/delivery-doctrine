@@ -1,0 +1,467 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+here=$(cd "$(dirname "$0")" && pwd)
+export DOCTRINE_SKILLS="$here/../skills"
+exec python3 -I - "$@" <<'PY'
+"""Report what the delivery doctrine did in one Claude Code session.
+
+usage: doctrine-diagnose [SESSION_ID | TRANSCRIPT] [--bundle FILE]
+"""
+import argparse
+import glob
+import json
+import os
+import re
+import sys
+
+GEAR = re.compile(r"\b(full|low) gear\b", re.I)
+HOOK_DENIAL = re.compile(r"(PreToolUse:\S+) hook (?:blocking )?error:\s*(?:\[[^\]]*\]:\s*)?(.*)", re.S)
+TEST_RUN = re.compile(r"\b(pytest|go\s+test|cargo\s+test|jest|vitest|unittest|(npm|yarn|pnpm)\s+(run\s+)?test"
+                      r"|mvnw?\b.*\b(test|verify)|gradlew?\b.*\btest)\b|\btests?/\S+\.py\b")
+TEST_FILE = re.compile(r"(_test\.go|_test\.py|Tests?\.java|IT\.java|\.(test|spec)\.[jt]sx?)$"
+                       r"|(^|/)test_[^/]*\.py$|(^|/)(tests?|__tests__|spec)/")
+SESSION_ID = re.compile(r"[A-Za-z0-9][\w-]*")
+EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
+AGENT_TOOLS = {"Agent", "Task"}
+LANGUAGES = {
+    ".go": ("Go", ("go-style",), ("go-testing",)),
+    ".py": ("Python", ("python-style",), ("pytest-testing",)),
+    ".java": ("Java", ("readable-java-style", "java-domain"), ("gwt-testing",)),
+}
+PLUGIN = "delivery-doctrine"
+SIDECHAIN_HEADING = "Subagent sessions (sidechain)"
+MISSES_HEADING = "Likely misses (heuristics, not proof)"
+REMOVED = ("message text (prompts, replies, thinking), file contents, command text, tool inputs and outputs, "
+           "subagent descriptions and prompts, MCP server and tool names, the transcript path and session id. "
+           "File paths are cut to their extension; emails, tokens and home paths are redacted.")
+KEPT = ("Claude Code version, timestamps, counts, tool names, skill names, subagent types and models, "
+        "hook names and their reasons, file extensions. Read it before you post it.")
+REDACTIONS = [
+    (re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+"), "<email>"),
+    (re.compile(r"\b(sk-[\w-]{16,}|gh[pousr]_\w{20,}|github_pat_\w{20,}|xox[abprs]-[\w-]{10,}"
+                r"|AKIA[0-9A-Z]{16}|eyJ[\w-]{10,}\.[\w-]{10,}\.[\w-]+)"), "<token>"),
+    (re.compile(r"\b(?=[\w+/=-]*\d)(?=[\w+/=-]*[A-Za-z])[\w+/=-]{32,}"), "<token>"),
+    (re.compile(r"/(Users|home)/[^/\s]+"), "~"),
+    (re.compile(r"[A-Za-z]:\\Users\\[^\\\s]+"), "~"),
+]
+PATH = re.compile(r"(?:~|\.{1,2})?(?:/[^\s/:;,'\"()<>\[\]]+)+/?")
+
+
+def fail(message):
+    print(f"doctrine-diagnose: {message}", file=sys.stderr)
+    sys.exit(2)
+
+
+def projects_dir():
+    config = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
+    return os.path.join(config, "projects")
+
+
+def current_stores():
+    folders = [os.getcwd(), os.environ.get("PWD") or ""]
+    stores = [os.path.join(projects_dir(), re.sub(r"[^A-Za-z0-9]", "-", folder)) for folder in folders if folder]
+    return list(dict.fromkeys(stores))
+
+
+def latest_transcript():
+    stores = current_stores()
+    found = [path for store in stores for path in glob.glob(os.path.join(store, "*.jsonl"))]
+    if not found:
+        fail(f"no transcripts for this directory in {stores[0]}; pass a session id or a transcript path")
+    return max(found, key=os.path.getmtime)
+
+
+def find_session(session_id):
+    if not SESSION_ID.fullmatch(session_id):
+        fail(f"not a transcript file or a session id: {session_id}")
+    candidates = [os.path.join(store, session_id + ".jsonl") for store in current_stores()]
+    candidates += sorted(glob.glob(os.path.join(projects_dir(), "*", session_id + ".jsonl")))
+    for candidate in candidates:
+        if os.path.isfile(candidate):
+            return candidate
+    fail(f"no transcript for session {session_id} in {projects_dir()}")
+
+
+def resolve(target):
+    if not target:
+        return latest_transcript()
+    if os.path.isfile(target):
+        return target
+    return find_session(target)
+
+
+def read_entries(path):
+    with open(path, encoding="utf-8", errors="replace") as lines:
+        for line in lines:
+            try:
+                entry = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(entry, dict):
+                yield entry
+
+
+def new_scope(name):
+    return {"name": name, "label": "", "description": "", "events": [], "prompts": 0,
+            "tools": set(), "tests": set(), "version": None, "first": None, "last": None}
+
+
+def scopes_of(path):
+    scopes = {"main": new_scope("main")}
+    for entry in read_entries(path):
+        name = (entry.get("agentId") or "sidechain") if entry.get("isSidechain") else "main"
+        take(scopes.setdefault(name, new_scope(name)), entry)
+    for transcript in sorted(glob.glob(os.path.join(os.path.splitext(path)[0], "subagents", "*.jsonl"))):
+        take_subagent(scopes, transcript)
+    return scopes
+
+
+def take_subagent(scopes, transcript):
+    stem = transcript[:-len(".jsonl")]
+    fallback = os.path.basename(stem).removeprefix("agent-")
+    for entry in read_entries(transcript):
+        name = entry.get("agentId") or fallback
+        take(scopes.setdefault(name, new_scope(name)), entry)
+    if fallback in scopes:
+        describe_agent(scopes[fallback], stem + ".meta.json")
+
+
+def describe_agent(scope, meta_path):
+    try:
+        with open(meta_path, encoding="utf-8") as meta_file:
+            meta = json.load(meta_file)
+    except (OSError, ValueError):
+        return
+    if isinstance(meta, dict):
+        scope["label"] = str(meta.get("agentType") or "")
+        scope["description"] = str(meta.get("description") or "")
+
+
+def take(scope, entry):
+    when = entry.get("timestamp")
+    if isinstance(when, str):
+        scope["first"] = min(scope["first"] or when, when)
+        scope["last"] = max(scope["last"] or when, when)
+    scope["version"] = scope["version"] or entry.get("version")
+    kind = entry.get("type")
+    if kind == "system" and entry.get("subtype") == "compact_boundary":
+        add(scope, "compaction", when)
+    elif kind == "user":
+        take_user(scope, entry, when)
+    elif kind == "assistant":
+        take_assistant(scope, entry, when)
+
+
+def add(scope, kind, when, **fields):
+    scope["events"].append({"kind": kind, "ts": when, "prompt": scope["prompts"], **fields})
+
+
+def content_of(entry):
+    message = entry.get("message")
+    return message.get("content") if isinstance(message, dict) else None
+
+
+def text_of(content):
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "\n".join(str(block.get("text") or "") for block in content
+                         if isinstance(block, dict) and block.get("type") == "text")
+    return ""
+
+
+def blocks_of(content, kind):
+    if not isinstance(content, list):
+        return []
+    return [block for block in content if isinstance(block, dict) and block.get("type") == kind]
+
+
+def take_user(scope, entry, when):
+    content = content_of(entry)
+    for block in blocks_of(content, "tool_result"):
+        take_result(scope, block, when)
+    if is_prompt(entry, content):
+        scope["prompts"] += 1
+        add(scope, "prompt", when)
+
+
+def is_prompt(entry, content):
+    if entry.get("isMeta") or entry.get("isCompactSummary") or blocks_of(content, "tool_result"):
+        return False
+    text = text_of(content).lstrip()
+    if not text:
+        return False
+    source = entry.get("promptSource")
+    if source:
+        return source != "system"
+    return not text.startswith("<") and not text.startswith("This session is being continued")
+
+
+def take_result(scope, block, when):
+    if not block.get("is_error"):
+        return
+    text = text_of(block.get("content")).strip()
+    denial = HOOK_DENIAL.search(text)
+    if denial:
+        reason = (denial.group(2).strip().splitlines() or [""])[0]
+        add(scope, "denial", when, hook=denial.group(1), reason=reason[:200])
+    elif block.get("tool_use_id") in scope["tests"] and text.startswith("Exit code"):
+        add(scope, "test_failed", when)
+
+
+def take_assistant(scope, entry, when):
+    content = content_of(entry)
+    for block in blocks_of(content, "text"):
+        for match in GEAR.finditer(str(block.get("text") or "")):
+            add(scope, "gear", when, gear=match.group(1).lower() + " gear")
+    for block in blocks_of(content, "tool_use"):
+        if block.get("id") not in scope["tools"]:
+            scope["tools"].add(block.get("id"))
+            take_tool(scope, block, when)
+
+
+def take_tool(scope, block, when):
+    name = str(block.get("name") or "unknown")
+    inputs = block.get("input") if isinstance(block.get("input"), dict) else {}
+    if name == "Skill":
+        add(scope, "skill", when, tool=name, skill=str(inputs.get("skill") or "unknown"))
+    elif name in AGENT_TOOLS:
+        add(scope, "agent", when, tool=name, agent=str(inputs.get("subagent_type") or "general-purpose"),
+            model=inputs.get("model"), description=str(inputs.get("description") or ""))
+    elif name in EDIT_TOOLS:
+        add(scope, "edit", when, tool=name, path=str(inputs.get("file_path") or inputs.get("notebook_path") or ""))
+    else:
+        add(scope, "tool", when, tool=name)
+        if name == "Bash" and TEST_RUN.search(str(inputs.get("command") or "")):
+            scope["tests"].add(block.get("id"))
+
+
+def short(skill):
+    return skill.rsplit(":", 1)[-1]
+
+
+def is_doctrine_skill(skill):
+    return ":" not in skill or skill.startswith(PLUGIN + ":")
+
+
+def clock(when):
+    if not isinstance(when, str) or not when:
+        return "unknown time"
+    return when.replace("T", " ")[:19] + (" UTC" if when.endswith("Z") else "")
+
+
+def where(event, main):
+    return f"prompt {event['prompt']} ({clock(event['ts'])})" if main else clock(event["ts"])
+
+
+def events(scope, kind):
+    return [event for event in scope["events"] if event["kind"] == kind]
+
+
+def misses(scope, main):
+    state = {"loaded": set(), "flagged": set(), "last_edit_was_test": None, "failure": None}
+    found = []
+    for event in scope["events"]:
+        if event["kind"] == "skill":
+            state["loaded"].add(short(event["skill"]))
+        elif event["kind"] == "edit":
+            found += edit_misses(event, state, main)
+        elif event["kind"] == "test_failed" and state["last_edit_was_test"] is not True:
+            state["failure"] = event
+    return found
+
+
+def wanted_skills(path):
+    extension = os.path.splitext(path)[1].lower()
+    is_test = bool(TEST_FILE.search(path))
+    wanted = []
+    if extension in LANGUAGES:
+        language, style, testing = LANGUAGES[extension]
+        wanted.append((language + " style", style, f"{language} file edited"))
+        if is_test:
+            wanted.append((language + " testing", testing, f"{language} test file edited"))
+    if is_test:
+        wanted.append(("test-first", ("test-first",), "test file edited"))
+    return wanted, is_test
+
+
+def edit_misses(event, state, main):
+    wanted, is_test = wanted_skills(event["path"])
+    found = []
+    for key, skills, what in wanted:
+        if key not in state["flagged"] and not state["loaded"].intersection(skills):
+            state["flagged"].add(key)
+            found.append(f"{what} at {where(event, main)} before {' or '.join(skills)} was loaded")
+    failure = state["failure"]
+    if failure and "debugging" not in state["flagged"] and "systematic-debugging" not in state["loaded"]:
+        state["flagged"].add("debugging")
+        found.append(f"a test run failed at {where(failure, main)}, not right after a test edit, and an edit "
+                     f"followed at {where(event, main)} without systematic-debugging loaded")
+    state["failure"] = None
+    state["last_edit_was_test"] = is_test
+    return found
+
+
+def doctrine_skills(skills_dir):
+    try:
+        names = os.listdir(skills_dir)
+    except OSError:
+        return set()
+    return {name for name in names if os.path.isfile(os.path.join(skills_dir, name, "SKILL.md"))}
+
+
+def or_none(lines, empty="  none"):
+    return lines or [empty]
+
+
+def basics_section(scope):
+    return ["Session",
+            f"  Claude Code: {scope['version'] or 'unknown'}",
+            f"  Started: {clock(scope['first'])}",
+            f"  Ended: {clock(scope['last'])}",
+            f"  User prompts: {scope['prompts']}",
+            f"  Compactions: {len(events(scope, 'compaction'))}"]
+
+
+def gear_section(scope):
+    first = {}
+    for event in events(scope, "gear"):
+        first.setdefault(event["gear"], event)
+    named = [f"  {gear}: first named at {where(event, True)}" for gear, event in first.items()]
+    return ["Gear"] + or_none(named, "  not named in any reply")
+
+
+def skills_section(scope, skills_dir):
+    loaded = events(scope, "skill")
+    lines = ["Skills loaded"] + or_none([f"  {where(event, True)}  {event['skill']}" for event in loaded])
+    doctrine = doctrine_skills(skills_dir)
+    if doctrine:
+        used = {short(event["skill"]) for event in loaded if is_doctrine_skill(event["skill"])}
+        lines.append(f"Doctrine skills never loaded: {', '.join(sorted(doctrine - used)) or 'none'}")
+    return lines
+
+
+def dispatch_line(event, main, scrub):
+    line = f"{where(event, main)}  {event['agent']}  model {event['model'] or 'not set'}"
+    return line if scrub or not event["description"] else f"{line}  {event['description']}"
+
+
+def dispatch_section(scope, scrub):
+    lines = [f"  {dispatch_line(event, True, scrub)}" for event in events(scope, "agent")]
+    return ["Subagents dispatched"] + or_none(lines)
+
+
+def denial_line(event, main):
+    return f"{where(event, main)}  {event['hook']}  {event['reason']}"
+
+
+def denial_section(scope):
+    return ["Guard denials"] + or_none([f"  {denial_line(event, True)}" for event in events(scope, "denial")])
+
+
+def misses_section(scope):
+    return [MISSES_HEADING] + or_none([f"  - {miss}" for miss in misses(scope, True)], "  none found")
+
+
+def nested(title, lines, empty):
+    return [f"    {title}: {empty}"] if not lines else [f"    {title}:"] + [f"      {line}" for line in lines]
+
+
+def sidechain_section(scope, scrub):
+    title = "  ".join(part for part in (f"  agent {scope['name']}", scope["label"],
+                                         "" if scrub else scope["description"]) if part)
+    skills = ", ".join(event["skill"] for event in events(scope, "skill")) or "none"
+    return ([title, f"    Skills loaded: {skills}"]
+            + nested("Subagents dispatched", [dispatch_line(e, False, scrub) for e in events(scope, "agent")], "none")
+            + nested("Guard denials", [denial_line(e, False) for e in events(scope, "denial")], "none")
+            + nested("Likely misses", [f"- {miss}" for miss in misses(scope, False)], "none found"))
+
+
+def render(scopes, path, skills_dir, scrub):
+    main = scopes["main"]
+    lines = [] if scrub else [f"Transcript: {path}", ""]
+    for section in (basics_section(main), gear_section(main), skills_section(main, skills_dir),
+                    dispatch_section(main, scrub), denial_section(main), misses_section(main)):
+        lines += section + [""]
+    sidechains = [scope for name, scope in scopes.items() if name != "main"]
+    if sidechains:
+        lines.append(SIDECHAIN_HEADING)
+        for scope in sidechains:
+            lines += sidechain_section(scope, scrub)
+    return lines
+
+
+def public_tool(name):
+    return "mcp" if name.startswith("mcp__") else name
+
+
+def timeline_entry(event):
+    kind = event["kind"]
+    if kind == "prompt":
+        return f"prompt {event['prompt']}"
+    if kind == "skill":
+        return f"skill {short(event['skill'])}"
+    if kind == "agent":
+        return f"agent {event['agent']} ({event['model'] or 'model not set'})"
+    if kind == "edit":
+        return f"edit {event['tool']} {os.path.splitext(event['path'])[1] or 'no extension'}"
+    if kind == "tool":
+        return f"tool {public_tool(event['tool'])}"
+    if kind == "denial":
+        return f"hook {event['hook']} deny"
+    if kind == "test_failed":
+        return "test run failed"
+    if kind == "gear":
+        return f"{event['gear']} named"
+    return kind
+
+
+def timeline(scopes):
+    rows = [(event["ts"] or "", name, event) for name, scope in scopes.items() for event in scope["events"]]
+    rows.sort(key=lambda row: row[0])
+    return [f"  {clock(when)}  {name}  {timeline_entry(event)}" for when, name, event in rows]
+
+
+def path_to_extension(match):
+    path = match.group(0)
+    if not re.search(r"[A-Za-z0-9]", path):
+        return path
+    extension = os.path.splitext(path.rstrip("/"))[1]
+    return f"<path {extension}>" if re.fullmatch(r"\.\w{1,8}", extension) else "<path>"
+
+
+def redact(text):
+    home = os.path.expanduser("~")
+    if len(home) > 1:
+        text = text.replace(home, "~")
+    for pattern, replacement in REDACTIONS:
+        text = pattern.sub(replacement, text)
+    return PATH.sub(path_to_extension, text)
+
+
+def bundle(scopes, skills_dir):
+    lines = ["doctrine-diagnose bundle, scrubbed for a public issue", f"Removed: {REMOVED}", f"Kept: {KEPT}", ""]
+    lines += render(scopes, "", skills_dir, scrub=True) + ["", "Timeline"] + timeline(scopes)
+    return redact("\n".join(lines)) + "\n"
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="doctrine-diagnose",
+                                     description="Report what the delivery doctrine did in one Claude Code session.")
+    parser.add_argument("target", nargs="?",
+                        help="session id or transcript path; default: the newest transcript of the current directory")
+    parser.add_argument("--bundle", metavar="FILE", help="also write a scrubbed copy safe to attach to a public issue")
+    args = parser.parse_args()
+    path = resolve(args.target)
+    scopes = scopes_of(path)
+    skills_dir = os.environ.get("DOCTRINE_SKILLS", "")
+    print("\n".join(render(scopes, path, skills_dir, scrub=False)))
+    if args.bundle:
+        with open(args.bundle, "w", encoding="utf-8") as out:
+            out.write(bundle(scopes, skills_dir))
+        print(f"\nBundle written to {args.bundle}. Removed: {REMOVED}")
+
+
+main()
+PY

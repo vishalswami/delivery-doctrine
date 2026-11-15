@@ -85,6 +85,7 @@ can (for example `/delivery-doctrine:grill-fast`) to jump straight to a step.
 | **Review** | `ddd-hexagonal-reviewer` | Is the architecture right-sized, and does it fit the codebase's existing conventions? |
 | | `review-feedback` | Acting on critic, reviewer and bot comments; replying and resolving threads |
 | **Present** | `narration-cue-map` | Keeps a live demo free of dead air while agents run |
+| **Support** | `diagnose` | Why a session skipped a step: reads the `doctrine-diagnose` report against the doctrine, explains the likely cause, offers a scrubbed bundle for a bug report |
 
 ### Language profiles
 
@@ -115,10 +116,17 @@ the main session.
 | Anchor | Past 150k tokens of context, restates five core rules next to each message, where a long context still attends to them |
 | Keep-awake | macOS: stops the machine idle-sleeping while a session runs |
 
-Two small commands in `bin/` support the loop: `build-scratch` (the orchestrating session's
-git-ignored scratch folder) and `review-package` (a slice's commits and diff in one file for the
-critic). Claude Code puts `bin/` on the Bash tool's path while the plugin is enabled, so the
-skills call them by bare name.
+### Commands
+
+| Command | What it does |
+|---|---|
+| `build-scratch` | Prints the orchestrating session's git-ignored scratch folder |
+| `review-package` | Writes a slice's commits and diff to one file for the critic |
+| `doctrine-diagnose` | Reports what the doctrine did in a session: gear, skills loaded and never loaded, subagents, guard denials, likely misses. `--bundle <file>` writes a scrubbed copy, with no message text, file contents or command text, to attach to a public issue |
+
+Claude Code puts `bin/` on the Bash tool's path while the plugin is enabled, so the skills call
+them by bare name. `doctrine-diagnose` takes a session id or a transcript path; with neither, it
+reads the newest transcript of the current folder.
 
 ## Configure
 
@@ -241,8 +249,8 @@ any `.claude/delivery-doctrine*.md` repository profiles, and `DOCTRINE_*` entrie
 
 ## Contributing
 
-Issues and pull requests are welcome. For a session that went wrong, run the `diagnose` skill
-and attach the bundle it writes.
+Issues and pull requests are welcome. For a bug report, ask the agent why the session went wrong;
+the `diagnose` skill explains it and offers a scrubbed bundle to attach.
 
 The doctrine stays small on purpose, so new skills are usually declined: open an issue first
 and say what failure it fixes that the existing skills don't. Fixes, sharper wording, better
@@ -274,7 +282,9 @@ when a person has read and stands behind every line.
    Each case states whether the guard must deny or allow it, and cases that should be
    harmless also run through real bash with stubbed programs, to prove nothing destructive
    executes.
-5. Open a pull request that says what changed and why.
+5. If you touch `bin/doctrine-diagnose`, run `python3 -I tests/diagnose.py`. Its fixtures in
+   `tests/fixtures/` are synthetic; never commit a real transcript.
+6. Open a pull request that says what changed and why.
 
 ### Releasing (maintainer)
 

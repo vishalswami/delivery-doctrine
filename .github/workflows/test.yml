@@ -17,3 +17,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 -I tests/guard.py
+      - run: python3 -I tests/diagnose.py
